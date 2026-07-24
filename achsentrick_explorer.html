@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Achsen-Trick – Wie eine Grafik lügt (Stunde 1)</title>
+<style>
+  :root{
+    --haupt:#14507d; --blau:#2c7bb6; --rot:#c0392b; --gruen:#2a7a3b;
+    --orange:#c45e00; --grau:#e7edf3; --grau2:#f4f7fa; --text:#1c2a36;
+  }
+  *{box-sizing:border-box}
+  body{margin:0}
+  .wrap{font-family:system-ui,Segoe UI,Roboto,sans-serif;color:var(--text);
+    max-width:760px;margin:0 auto;padding:18px;line-height:1.45}
+  h1{font-size:1.35rem;margin:.1em 0 .1em;color:var(--haupt)}
+  .sub{color:#5a6b78;margin:0 0 16px;font-size:.95rem}
+  .karte{background:var(--grau2);border:1px solid var(--grau);border-radius:14px;
+    padding:16px 18px;margin-bottom:16px}
+  .reihe{display:flex;gap:22px;flex-wrap:wrap}
+  .plot{flex:1 1 300px;min-width:280px}
+  .steuer{flex:1 1 230px;min-width:230px}
+  label{display:block;font-weight:600;margin:14px 0 4px;font-size:.95rem}
+  input[type=range]{width:100%;accent-color:var(--haupt);height:26px}
+  .wert{font-variant-numeric:tabular-nums;color:var(--haupt);font-weight:700}
+  svg{width:100%;height:auto;display:block;background:#fff;border-radius:10px;
+    border:1px solid var(--grau)}
+  .schlag{font-size:1.15rem;font-weight:800;margin:6px 0 2px;min-height:1.4em}
+  .lupe{font-variant-numeric:tabular-nums;font-weight:700}
+  .fazit{background:#fff;border-left:5px solid var(--haupt);border-radius:8px;
+    padding:12px 14px;margin-top:8px;font-size:.95rem}
+  .toggle{display:flex;align-items:center;gap:9px;margin-top:16px;font-weight:600;
+    cursor:pointer}
+  .toggle input{width:20px;height:20px;accent-color:var(--gruen)}
+  .fuss{font-size:.82rem;color:#6b7a86;margin-top:2px}
+  .rot{color:var(--rot)} .gruen{color:var(--gruen)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Wie eine Grafik lügt – ohne eine einzige Zahl zu fälschen</h1>
+  <p class="sub">Zustimmung zur Partei <em>Blaupartei</em> in vier Umfragen. Die Werte
+    bleiben immer gleich – nur die y-Achse verändert sich.</p>
+
+  <div class="karte">
+    <div class="reihe">
+      <div class="plot">
+        <svg id="chart" viewBox="0 0 320 260" role="img"
+             aria-label="Säulendiagramm der Zustimmungswerte"></svg>
+        <p class="fuss">Werte: 40 %, 41 %, 43 %, 45 % (2021–2024)</p>
+      </div>
+      <div class="steuer">
+        <label for="ymin">Y-Achse beginnt bei
+          <span class="wert" id="yminOut">0</span> %</label>
+        <input type="range" id="ymin" min="0" max="39" value="0" step="1"
+               aria-describedby="lupeTxt">
+        <p class="schlag" id="schlag"></p>
+        <p class="lupe" id="lupeTxt"></p>
+        <label class="toggle" for="ehrlich">
+          <input type="checkbox" id="ehrlich"> Ehrliche Achse erzwingen (bei 0 % starten)
+        </label>
+      </div>
+    </div>
+    <div class="fazit" id="fazit"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const werte=[40,41,43,45], jahre=["2021","2022","2023","2024"];
+  const ymax=50;
+  const el=id=>document.getElementById(id);
+  const svg=el("chart"), ns="http://www.w3.org/2000/svg";
+  const W=320,H=260, L=42,R=12,T=18,B=34;
+  const px=W-L-R, py=H-T-B;
+  const nf=new Intl.NumberFormat("de-DE");
+
+  function draw(ymin){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const span=ymax-ymin;
+    const y=v=>T+py-(v-ymin)/span*py;
+    // Achsen
+    add("line",{x1:L,y1:T,x2:L,y2:T+py,stroke:"#556",   "stroke-width":1.5});
+    add("line",{x1:L,y1:T+py,x2:L+px,y2:T+py,stroke:"#556","stroke-width":1.5});
+    // Y-Ticks
+    for(let t=0;t<=5;t++){
+      const v=ymin+span*t/5, yy=y(v);
+      add("line",{x1:L-4,y1:yy,x2:L,y2:yy,stroke:"#889","stroke-width":1});
+      const tx=add("text",{x:L-7,y:yy+3,"text-anchor":"end","font-size":9,fill:"#556"});
+      tx.textContent=nf.format(Math.round(v));
+    }
+    // Bruch-Symbol wenn abgeschnitten
+    if(ymin>0){
+      add("text",{x:L,y:T+py+0,"font-size":13,fill:"var(--rot)","text-anchor":"middle"})
+        .textContent="";
+      const zz=add("path",{d:`M${L-6},${T+py-6} l12,4 M${L-6},${T+py-2} l12,4`,
+        stroke:"var(--rot)","stroke-width":1.4,fill:"none"});
+    }
+    // Säulen
+    const n=werte.length, bw=px/n*0.55;
+    werte.forEach((v,i)=>{
+      const cx=L+px*(i+0.5)/n, top=y(v), h=Math.max(0,T+py-top);
+      add("rect",{x:cx-bw/2,y:top,width:bw,height:h,rx:2,
+        fill:i===n-1?"var(--haupt)":"var(--blau)"});
+      add("text",{x:cx,y:top-4,"text-anchor":"middle","font-size":9,
+        fill:"var(--text)","font-weight":700}).textContent=v+"%";
+      add("text",{x:cx,y:T+py+14,"text-anchor":"middle","font-size":9,fill:"#556"})
+        .textContent=jahre[i];
+    });
+  }
+  function add(tag,attr){
+    const e=document.createElementNS(ns,tag);
+    for(const k in attr) e.setAttribute(k,attr[k]);
+    svg.appendChild(e); return e;
+  }
+
+  function update(){
+    let ymin=+el("ymin").value;
+    if(el("ehrlich").checked){ ymin=0; el("ymin").value=0; el("ymin").disabled=true; }
+    else el("ymin").disabled=false;
+    el("yminOut").textContent=ymin;
+    draw(ymin);
+
+    const first=werte[0], last=werte[werte.length-1];
+    const hFirst=Math.max(0.01,first-ymin), hLast=Math.max(0.01,last-ymin);
+    const faktor=hLast/hFirst;                 // wie viel höher wirkt die letzte Säule
+    const echt=((last-first)/first*100);       // echte relative Zunahme
+    const schlag=el("schlag"), lupe=el("lupeTxt"), fazit=el("fazit");
+
+    lupe.innerHTML=`Die letzte Säule wirkt <span class="lupe">${faktor.toLocaleString("de-DE",{maximumFractionDigits:1})}×</span> so hoch wie die erste.`;
+    if(ymin===0){
+      schlag.textContent="„Kaum Bewegung.“";
+      schlag.className="schlag gruen";
+      fazit.innerHTML=`<b>Ehrliche Achse.</b> Von 40 % auf 45 % – tatsächlich
+        <b>+${echt.toLocaleString("de-DE",{maximumFractionDigits:1})} %</b>
+        relativ (5 Prozentpunkte). Höhe der Säulen ≈ Verhältnis der Werte. Fair.`;
+    } else if(faktor<2){
+      schlag.textContent="„Deutlicher Aufwärtstrend.“";
+      schlag.className="schlag";
+      fazit.innerHTML=`Achse beginnt bei ${ymin} %. Der Sprung wird schon betont –
+        die <b>echte</b> Zunahme sind aber weiterhin nur
+        <b>+${echt.toLocaleString("de-DE",{maximumFractionDigits:1})} %</b>.`;
+    } else {
+      schlag.textContent="„Zustimmung EXPLODIERT!“";
+      schlag.className="schlag rot";
+      fazit.innerHTML=`<b>Manipulation.</b> Durch den Achsenstart bei ${ymin} %
+        wirkt die letzte Säule ${faktor.toLocaleString("de-DE",{maximumFractionDigits:1})}×
+        so hoch – dabei sind es real nur
+        <b>+${echt.toLocaleString("de-DE",{maximumFractionDigits:1})} %</b>.
+        <b>Merke:</b> Immer zuerst auf den Nullpunkt und die Achsenbeschriftung schauen!`;
+    }
+  }
+
+  el("ymin").addEventListener("input",update);
+  el("ehrlich").addEventListener("change",update);
+  update();
+})();
+</script>
+</body>
+</html>

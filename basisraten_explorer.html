@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Basisraten-Explorer – Medizinische Tests (Stunde 9 / 15)</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --gruen:#2a7a3b; --orange:#c45e00; --rot:#b02020; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:22px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.5;}
+  .wrap{max-width:1040px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:16px 20px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  header.top h1{font-size:20px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:13px; opacity:.92;}
+  .badge{background:#fff; color:var(--haupt); font-weight:700; border-radius:6px;
+    padding:6px 12px; font-size:14px; white-space:nowrap;}
+  .vorgehen{background:var(--hell); border-left:4px solid var(--akzent);
+    border-radius:0 6px 6px 0; padding:12px 16px; margin:16px 0; font-size:14px;}
+  .vorgehen b{color:var(--haupt);}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:8px;}
+  @media (max-width:760px){ .grid{grid-template-columns:1fr;} }
+  .card{border:1px solid #d7e0ea; background:#fff; border-radius:10px; padding:16px 18px;}
+  .card h2{font-size:15px; color:var(--haupt); margin:0 0 12px; letter-spacing:.02em;}
+  /* Slider */
+  .slider-row{margin:14px 0;}
+  .slider-row label{display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:4px;}
+  .slider-row label .val{color:var(--akzent); font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%; accent-color:var(--haupt);}
+  /* Vierfeldertafel */
+  table.vft{border-collapse:collapse; width:100%; font-size:14px; margin-top:4px;}
+  table.vft th, table.vft td{border:1px solid #b9c6d4; padding:8px 6px; text-align:center;}
+  table.vft th{background:var(--hell); color:var(--haupt);}
+  table.vft td.rowh{background:var(--hell); color:var(--haupt); font-weight:700; text-align:left; padding-left:10px;}
+  table.vft td.sum{background:#f4f7fb; font-weight:700;}
+  .tp{color:var(--gruen); font-weight:700;} .fp{color:var(--orange); font-weight:700;}
+  .fn{color:var(--rot); font-weight:700;}
+  /* Waffle */
+  .waffle{display:grid; grid-template-columns:repeat(20,1fr); gap:2px; margin-top:6px;}
+  .cell{width:100%; aspect-ratio:1/1; border-radius:2px;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:12px; font-size:12.5px;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .sw{width:13px; height:13px; border-radius:3px; display:inline-block;}
+  /* Ergebnis */
+  .ergebnis{background:var(--haupt); color:#fff; border-radius:10px; padding:16px 18px; margin-top:8px; text-align:center;}
+  .ergebnis .big{font-size:40px; font-weight:800; line-height:1.1;}
+  .ergebnis .sub{font-size:14px; opacity:.92; margin-top:6px;}
+  .posbar{display:flex; height:26px; border-radius:6px; overflow:hidden; margin-top:12px; border:1px solid #d7e0ea;}
+  .posbar .seg{display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700; min-width:0; white-space:nowrap;}
+  .ki{background:#fff3e0; border-left:4px solid var(--orange); border-radius:0 6px 6px 0;
+    padding:10px 14px; margin-top:12px; font-size:13.5px;}
+  .ki b{color:var(--orange);}
+  footer.foot{margin-top:22px; font-size:12px; color:var(--textgrau); text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Basisraten-Explorer: Wie aussagekräftig ist ein positiver Test?</h1>
+      <p>Zieh an den Reglern und beobachte, wie sich alles verändert – besonders die Wahrscheinlichkeit unten.</p>
+    </div>
+    <span class="badge">Stunde&nbsp;9 · Med. Tests</span>
+  </header>
+
+  <div class="vorgehen">
+    <b>Auftrag:</b> Stell die Verbreitung auf <b>1&nbsp;%</b> und die Genauigkeit auf <b>90&nbsp;%</b>.
+    Wie hoch ist die Wahrscheinlichkeit, bei positivem Test <b>wirklich krank</b> zu sein? Überrascht dich das?
+    Erhöhe dann die Verbreitung schrittweise – was passiert?
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Regler (Bevölkerung: 10&nbsp;000 Personen)</h2>
+      <div class="slider-row">
+        <label for="prev">Verbreitung der Krankheit <span class="val" id="prevVal">1 %</span></label>
+        <input type="range" id="prev" min="0" max="50" value="1" step="1">
+      </div>
+      <div class="slider-row">
+        <label for="sens">Sensitivität (erkennt Kranke) <span class="val" id="sensVal">90 %</span></label>
+        <input type="range" id="sens" min="50" max="100" value="90" step="1">
+      </div>
+      <div class="slider-row">
+        <label for="spez">Spezifität (erkennt Gesunde) <span class="val" id="spezVal">90 %</span></label>
+        <input type="range" id="spez" min="50" max="100" value="90" step="1">
+      </div>
+
+      <h2 style="margin-top:18px;">Vierfeldertafel</h2>
+      <table class="vft">
+        <tr><th></th><th>krank</th><th>gesund</th><th>gesamt</th></tr>
+        <tr><td class="rowh">Test positiv</td><td class="tp" id="tp"></td><td class="fp" id="fp"></td><td class="sum" id="posg"></td></tr>
+        <tr><td class="rowh">Test negativ</td><td class="fn" id="fn"></td><td id="tn"></td><td class="sum" id="negg"></td></tr>
+        <tr><td class="rowh">gesamt</td><td class="sum" id="krankg"></td><td class="sum" id="gesundg"></td><td class="sum">10 000</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>100 Personen als Bild (jedes Kästchen = 100 Menschen)</h2>
+      <div class="waffle" id="waffle" aria-hidden="true"></div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--gruen)"></span> richtig positiv (krank &amp; positiv)</span>
+        <span><span class="sw" style="background:var(--orange)"></span> falsch positiv (gesund &amp; positiv)</span>
+        <span><span class="sw" style="background:var(--grau)"></span> richtig negativ (gesund &amp; negativ)</span>
+        <span><span class="sw" style="background:var(--rot)"></span> falsch negativ (krank &amp; negativ)</span>
+      </div>
+
+      <div class="ergebnis" aria-live="polite">
+        <div class="sub">Wenn dein Test <b>positiv</b> ist, bist du wirklich krank mit</div>
+        <div class="big" id="ppv">–</div>
+        <div class="sub" id="ppvFrac"></div>
+        <div class="posbar" id="posbar"><div class="seg" style="background:var(--gruen)"></div><div class="seg" style="background:var(--orange)"></div></div>
+      </div>
+
+      <div class="ki">
+        <b>KI-Behauptung:</b> „Der Test ist zu <span id="kiAcc">90</span>&nbsp;% genau – also bist du zu
+        <span id="kiAcc2">90</span>&nbsp;% krank." <span id="kiUrteil"></span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    Daten und Wahrscheinlichkeit · Mathematik 10 — interaktives Begleitmaterial zu Stunde&nbsp;9/15
+  </footer>
+
+</div>
+
+<script>
+  const N = 10000;
+  const $ = id => document.getElementById(id);
+  const els = {
+    prev:$("prev"), sens:$("sens"), spez:$("spez"),
+    prevVal:$("prevVal"), sensVal:$("sensVal"), spezVal:$("spezVal"),
+    tp:$("tp"), fp:$("fp"), fn:$("fn"), tn:$("tn"),
+    posg:$("posg"), negg:$("negg"), krankg:$("krankg"), gesundg:$("gesundg"),
+    waffle:$("waffle"), ppv:$("ppv"), ppvFrac:$("ppvFrac"), posbar:$("posbar"),
+    kiAcc:$("kiAcc"), kiAcc2:$("kiAcc2"), kiUrteil:$("kiUrteil")
+  };
+
+  // 100 Waffle-Kästchen einmalig anlegen
+  const cells = [];
+  for(let i=0;i<100;i++){ const d=document.createElement("div"); d.className="cell"; els.waffle.appendChild(d); cells.push(d); }
+  const COL = {tp:getCss("--gruen"), fp:getCss("--orange"), tn:getCss("--grau"), fn:getCss("--rot")};
+  function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  function fmt(n){ return n.toLocaleString("de-DE"); }
+
+  function update(){
+    const prev = +els.prev.value, sens = +els.sens.value, spez = +els.spez.value;
+    els.prevVal.textContent = prev + " %";
+    els.sensVal.textContent = sens + " %";
+    els.spezVal.textContent = spez + " %";
+
+    const krank = Math.round(N*prev/100), gesund = N-krank;
+    const tp = Math.round(krank*sens/100), fn = krank-tp;
+    const tn = Math.round(gesund*spez/100), fp = gesund-tn;
+    const pos = tp+fp, neg = fn+tn;
+
+    els.tp.textContent=fmt(tp); els.fp.textContent=fmt(fp);
+    els.fn.textContent=fmt(fn); els.tn.textContent=fmt(tn);
+    els.posg.textContent=fmt(pos); els.negg.textContent=fmt(neg);
+    els.krankg.textContent=fmt(krank); els.gesundg.textContent=fmt(gesund);
+
+    // PPV = P(krank | positiv)
+    const ppv = pos>0 ? tp/pos : 0;
+    els.ppv.textContent = pos>0 ? (ppv*100).toFixed(1).replace(".",",")+" %" : "–";
+    els.ppvFrac.textContent = pos>0 ? "= "+fmt(tp)+" von "+fmt(pos)+" positiven Tests sind wirklich krank" : "keine positiven Tests";
+
+    // Positive-Bar (grün : orange)
+    const gseg = els.posbar.children[0], oseg = els.posbar.children[1];
+    gseg.style.flex = tp; oseg.style.flex = fp;
+    gseg.textContent = (pos>0 && tp/pos>0.08) ? "krank" : "";
+    oseg.textContent = (pos>0 && fp/pos>0.08) ? "gesund (Fehlalarm)" : "";
+
+    // Waffle: 100 Kästchen proportional (größter Rest)
+    const parts = [["tp",tp],["fp",fp],["tn",tn],["fn",fn]];
+    const counts = largestRemainder(parts.map(p=>p[1]), 100);
+    let idx=0;
+    parts.forEach((p,k)=>{ for(let c=0;c<counts[k];c++){ cells[idx++].style.background=COL[p[0]]; } });
+    while(idx<100){ cells[idx++].style.background="#eef2f6"; }
+
+    // KI-Urteil
+    const acc = Math.round((sens+spez)/2);
+    els.kiAcc.textContent=acc; els.kiAcc2.textContent=acc;
+    els.kiUrteil.innerHTML = pos>0
+      ? (ppv < 0.5 ? "<b>Falsch!</b> Tatsächlich nur "+(ppv*100).toFixed(0)+" % – die Basisrate wurde ignoriert."
+                   : "Hier passt es ungefähr – aber nur, weil die Krankheit häufig ist.")
+      : "";
+  }
+
+  function largestRemainder(vals, total){
+    const sum = vals.reduce((a,b)=>a+b,0) || 1;
+    const raw = vals.map(v=>v/sum*total);
+    const base = raw.map(Math.floor);
+    let rest = total - base.reduce((a,b)=>a+b,0);
+    const order = raw.map((v,i)=>[v-Math.floor(v),i]).sort((a,b)=>b[0]-a[0]);
+    for(let k=0;k<rest;k++){ base[order[k%order.length][1]]++; }
+    return base;
+  }
+
+  [els.prev, els.sens, els.spez].forEach(s=>s.addEventListener("input", update));
+  update();
+</script>
+</body>
+</html>
