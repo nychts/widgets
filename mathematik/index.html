@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mathematik – Interaktive Widgets</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>Mathematik – Interaktive Widgets</h1>
+  <p class="lead">Wähle Klasse und Reihe.</p>
+
+  <nav class="toc" id="toc" aria-label="Inhaltsverzeichnis">
+    <span class="toc-label">Inhalt</span>
+  </nav>
+
+  <div id="liste"></div>
+
+  <footer>Interaktives Begleitmaterial · <a href="../index.html">alle Fächer</a></footer>
+</div>
+
+<script>
+// Datenmodell: Klasse -> Reihen -> Widgets. Neue Reihe/Widget einfach ergänzen.
+const KLASSEN = [
+  {
+    klasse: "Klasse 10",
+    reihen: [
+      {
+        id: "m10-daten",
+        reihe: "Daten und Wahrscheinlichkeit",
+        widgets: [
+          { titel: "Achsen-Trick-Explorer", stunde: "Stunde 1 · Manipulierte Grafiken",
+            beschr: "Kappe die y-Achse und sieh, wie dieselben Zahlen „explodieren“.",
+            href: "achsentrick_explorer.html" },
+          { titel: "Zufalls-Labor", stunde: "Stunde 3 · Kleine Stichproben",
+            beschr: "Wirf die Münze bis zu 1000× – das Gesetz der großen Zahlen live.",
+            href: "zufallslabor.html" },
+          { titel: "Basisraten-Explorer", stunde: "Stunde 9 · Medizinische Tests",
+            beschr: "Vierfeldertafel, Waffle und P(krank | positiv) per Regler.",
+            href: "basisraten_explorer.html" },
+        ],
+      },
+    ],
+  },
+];
+
+const toc = document.getElementById("toc");
+const liste = document.getElementById("liste");
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+for (const k of KLASSEN) {
+  const kd = document.createElement("details");
+  kd.className = "klasse";
+  kd.open = true;
+  kd.innerHTML = `<summary>${esc(k.klasse)}</summary>`;
+
+  for (const r of k.reihen) {
+    // TOC-Eintrag
+    const a = document.createElement("a");
+    a.href = "#" + r.id;
+    a.textContent = r.reihe;
+    toc.appendChild(a);
+
+    // Reihe = aufklappbar, Widgets erst beim Öffnen sichtbar
+    const rd = document.createElement("details");
+    rd.className = "reihe";
+    rd.id = r.id;
+    const cards = r.widgets.map(w => `
+      <a class="card" href="${esc(w.href)}">
+        <span class="t">${esc(w.titel)}</span>
+        <span class="s">${esc(w.stunde)}</span>
+        <span class="d">${esc(w.beschr)}</span>
+        <span class="go">Öffnen ›</span>
+      </a>`).join("");
+    rd.innerHTML = `<summary>${esc(r.reihe)}<span class="count">${r.widgets.length} Widgets</span></summary>
+      <div class="cards">${cards}</div>`;
+    kd.appendChild(rd);
+  }
+  liste.appendChild(kd);
+}
+
+// TOC-Klick / #hash: passende Reihe (und ihre Klasse) aufklappen + hinscrollen
+function oeffne(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let p = el;
+  while (p) { if (p.tagName === "DETAILS") p.open = true; p = p.parentElement; }
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+toc.addEventListener("click", e => {
+  const a = e.target.closest("a"); if (!a) return;
+  e.preventDefault();
+  const id = a.getAttribute("href").slice(1);
+  history.replaceState(null, "", "#" + id);
+  oeffne(id);
+});
+if (location.hash) oeffne(location.hash.slice(1));
+</script>
+</body>
+</html>

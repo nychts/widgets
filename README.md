@@ -1,12 +1,26 @@
-# Interaktive Mathe-Widgets — Daten und Wahrscheinlichkeit (Klasse 10)
+# Interaktive Unterrichts-Widgets
 
 Self-contained HTML-Widgets (inline CSS/JS, keine externen Abhängigkeiten) als digitale
-Enaktivität für den Stochastik-Unterricht. Öffnen im Browser, keine Anmeldung, tablet-tauglich.
+Enaktivität. Öffnen im Browser, keine Anmeldung.
 
-| Widget | Stunde | Inhalt |
-|---|---|---|
-| [Achsen-Trick-Explorer](achsentrick_explorer.html) | 1 – Manipulierte Grafiken | y-Achse kappen → dieselben Daten wirken „explosiv" vs. ehrlich |
-| [Zufalls-Labor](zufallslabor.html) | 3 – Kleine Stichproben / 13 | Münzwürfe live → Gesetz der großen Zahlen, Spielerfehlschluss |
-| [Basisraten-Explorer](basisraten_explorer.html) | 9 – Medizinische Tests / 15 | Vierfeldertafel + Waffle + P(krank \| positiv) per Regler |
+Live: <https://nychts.github.io/widgets/>
+
+## Struktur
+
+```
+/                      Fächer-Startseite
+  style.css            geteiltes Stylesheet (Flexbox, mobilfreundlich)
+  mathematik/          TOC + aufklappbar (Klasse -> Reihe -> Widgets)
+    achsentrick_explorer.html    Kl. 10 · Manipulierte Grafiken
+    zufallslabor.html            Kl. 10 · Kleine Stichproben
+    basisraten_explorer.html     Kl. 10 · Medizinische Tests
+  informatik/          gleiche Struktur, noch ohne Widgets
+```
+
+## Neues Widget hinzufügen
+
+1. HTML-Datei in `mathematik/` bzw. `informatik/` ablegen.
+2. Im jeweiligen `index.html` den `KLASSEN`-Datensatz um einen Widget-Eintrag ergänzen
+   (Titel, Stunde, Beschreibung, `href`).
 
 Frei nutzbar für den Unterricht.

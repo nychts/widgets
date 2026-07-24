@@ -1,0 +1,88 @@
+:root{
+  --haupt:#14507d; --blau:#2c7bb6; --grau:#e7edf3; --grau2:#f4f7fa;
+  --text:#1c2a36; --muted:#5a6b78; --line:#d7e0e9;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:system-ui,Segoe UI,Roboto,sans-serif;
+  color:var(--text); background:#fff; line-height:1.5;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{
+  width:100%; max-width:720px; margin:0 auto;
+  padding:clamp(14px,4vw,28px);
+}
+h1{color:var(--haupt); font-size:clamp(1.3rem,5vw,1.7rem); margin:.1em 0 .1em}
+.lead{color:var(--muted); margin:.2em 0 20px; font-size:.98rem}
+
+/* ---- Inhaltsverzeichnis: Flex-Chips, umbrechend ---- */
+.toc{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  padding:12px 14px; margin:0 0 22px;
+  background:var(--grau2); border:1px solid var(--line); border-radius:12px;
+}
+.toc .toc-label{font-weight:700; color:var(--haupt); font-size:.82rem;
+  text-transform:uppercase; letter-spacing:.04em; margin-right:2px}
+.toc a{
+  display:inline-block; text-decoration:none; color:var(--haupt);
+  background:#fff; border:1px solid var(--line); border-radius:999px;
+  padding:5px 12px; font-size:.9rem; font-weight:600;
+}
+.toc a:hover,.toc a:focus{border-color:var(--blau); background:#eef4fa}
+
+/* ---- Aufklappbare Klasse / Reihe ---- */
+details{border:1px solid var(--line); border-radius:12px; margin-bottom:12px;
+  background:#fff; overflow:hidden}
+details+details{margin-top:0}
+summary{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  cursor:pointer; list-style:none; padding:13px 16px; font-weight:700;
+  color:var(--haupt); user-select:none;
+}
+summary::-webkit-details-marker{display:none}
+summary::before{
+  content:"▸"; color:var(--blau); font-size:.9em; transition:transform .15s ease;
+}
+details[open]>summary::before{transform:rotate(90deg)}
+.klasse{background:var(--grau2)}
+.klasse>summary{font-size:1.08rem}
+.reihe{margin:10px 12px 4px; border-color:var(--line)}
+.reihe>summary{font-size:1rem; background:#fbfdff}
+.count{margin-left:auto; font-size:.78rem; font-weight:600; color:var(--muted);
+  background:var(--grau); border-radius:999px; padding:2px 9px}
+
+/* ---- Widget-Karten: Flexbox, umbrechend ---- */
+.cards{display:flex; flex-wrap:wrap; gap:12px; padding:6px 12px 14px}
+.card{
+  flex:1 1 240px; min-width:0;
+  display:flex; flex-direction:column;
+  text-decoration:none; color:inherit;
+  background:var(--grau2); border:1px solid var(--line); border-radius:12px;
+  padding:14px 16px;
+}
+.card:hover,.card:focus{border-color:var(--blau); box-shadow:0 2px 10px rgba(20,80,125,.12)}
+.card .t{font-weight:800; color:var(--haupt); font-size:1.05rem}
+.card .s{font-size:.82rem; color:var(--muted); margin:2px 0 7px}
+.card .d{font-size:.94rem}
+.card .go{margin-top:auto; padding-top:10px; font-weight:700; color:var(--blau);
+  font-size:.88rem}
+
+/* ---- Fächer-Kacheln (Startseite) ---- */
+.subjects{display:flex; flex-wrap:wrap; gap:14px}
+.subject{
+  flex:1 1 220px;
+  display:flex; flex-direction:column; gap:4px;
+  text-decoration:none; color:inherit;
+  background:var(--grau2); border:1px solid var(--line); border-radius:14px;
+  padding:20px 18px;
+}
+.subject:hover,.subject:focus{border-color:var(--blau);
+  box-shadow:0 3px 12px rgba(20,80,125,.14)}
+.subject .emoji{font-size:1.9rem}
+.subject .t{font-weight:800; color:var(--haupt); font-size:1.2rem}
+.subject .d{font-size:.9rem; color:var(--muted)}
+
+.empty{padding:14px 16px; color:var(--muted); font-style:italic}
+footer{color:#8494a0; font-size:.82rem; margin-top:24px}
+footer a{color:var(--muted)}

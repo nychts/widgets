@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informatik – Interaktive Widgets</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>Informatik – Interaktive Widgets</h1>
+  <p class="lead">Wähle Klasse und Reihe.</p>
+
+  <nav class="toc" id="toc" aria-label="Inhaltsverzeichnis">
+    <span class="toc-label">Inhalt</span>
+  </nav>
+
+  <div id="liste"></div>
+
+  <footer>Interaktives Begleitmaterial · <a href="../index.html">alle Fächer</a></footer>
+</div>
+
+<script>
+// Datenmodell: Klasse -> Reihen -> Widgets. Sobald Widgets da sind, hier ergänzen
+// (identische Struktur wie mathematik/index.html).
+const KLASSEN = [];
+
+const toc = document.getElementById("toc");
+const liste = document.getElementById("liste");
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+if (KLASSEN.length === 0) {
+  toc.insertAdjacentHTML("beforeend", '<span class="empty" style="padding:0">– noch leer –</span>');
+  liste.innerHTML = '<p class="empty">Für Informatik sind noch keine Widgets hinterlegt. Bald verfügbar.</p>';
+}
+
+for (const k of KLASSEN) {
+  const kd = document.createElement("details");
+  kd.className = "klasse";
+  kd.open = true;
+  kd.innerHTML = `<summary>${esc(k.klasse)}</summary>`;
+
+  for (const r of k.reihen) {
+    const a = document.createElement("a");
+    a.href = "#" + r.id;
+    a.textContent = r.reihe;
+    toc.appendChild(a);
+
+    const rd = document.createElement("details");
+    rd.className = "reihe";
+    rd.id = r.id;
+    const cards = r.widgets.map(w => `
+      <a class="card" href="${esc(w.href)}">
+        <span class="t">${esc(w.titel)}</span>
+        <span class="s">${esc(w.stunde)}</span>
+        <span class="d">${esc(w.beschr)}</span>
+        <span class="go">Öffnen ›</span>
+      </a>`).join("");
+    rd.innerHTML = `<summary>${esc(r.reihe)}<span class="count">${r.widgets.length} Widgets</span></summary>
+      <div class="cards">${cards}</div>`;
+    kd.appendChild(rd);
+  }
+  liste.appendChild(kd);
+}
+
+function oeffne(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let p = el;
+  while (p) { if (p.tagName === "DETAILS") p.open = true; p = p.parentElement; }
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+toc.addEventListener("click", e => {
+  const a = e.target.closest("a"); if (!a) return;
+  e.preventDefault();
+  const id = a.getAttribute("href").slice(1);
+  history.replaceState(null, "", "#" + id);
+  oeffne(id);
+});
+if (location.hash) oeffne(location.hash.slice(1));
+</script>
+</body>
+</html>
