@@ -21,9 +21,23 @@
 </div>
 
 <script>
-// Datenmodell: Klasse -> Reihen -> Widgets. Sobald Widgets da sind, hier ergänzen
-// (identische Struktur wie mathematik/index.html).
-const KLASSEN = [];
+// Datenmodell: Klasse -> Reihen -> Widgets (identische Struktur wie mathematik/index.html).
+const KLASSEN = [
+  {
+    klasse: "Einführungsphase",
+    reihen: [
+      {
+        id: "ef-oop-java",
+        reihe: "Objektorientierte Modellierung und Programmierung in Java",
+        widgets: [
+          { titel: "Konstruktor-Inspektor", stunde: "Stunde 11 · Der Konstruktor",
+            beschr: "Konstruktor Schritt für Schritt ausführen, Objektzustandsdiagramm läuft mit. Ein Schalter wechselt zwischen richtigem und falschem Konstruktor – bei gleichem Ausführungsstand.",
+            href: "konstruktor_inspektor.html" },
+        ],
+      },
+    ],
+  },
+];
 
 const toc = document.getElementById("toc");
 const liste = document.getElementById("liste");
