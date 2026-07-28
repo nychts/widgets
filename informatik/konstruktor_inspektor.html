@@ -150,11 +150,11 @@
         <legend>Welchen Konstruktor rufst du auf?</legend>
         <div class="radiozeile">
           <input type="radio" id="kStd" name="ktyp" value="std">
-          <label for="kStd">Standardkonstruktor – <code>new Datum()</code>, ohne Parameter</label>
+          <label for="kStd">Standardkonstruktor – <code id="lblStd"></code>, ohne Parameter</label>
         </div>
         <div class="radiozeile">
           <input type="radio" id="kPar" name="ktyp" value="par" checked>
-          <label for="kPar">Parametrisierter Konstruktor – Werte werden übergeben</label>
+          <label for="kPar">Parametrisierter Konstruktor – <code id="lblPar"></code>, Werte werden übergeben</label>
         </div>
       </fieldset>
 
@@ -225,6 +225,7 @@
 
   <footer class="foot">
     Konstruktor-Inspektor · Interaktives Begleitmaterial Informatik
+
   </footer>
 </div>
 
@@ -472,6 +473,14 @@ function zeichneEingaben(){
   }
 }
 
+/* Die Konstruktor-Auswahl nennt immer die GERADE gewählte Klasse. */
+function zeichneLabels(){
+  var attrs = kl().attribute, typen = [], i;
+  for (i = 0; i < attrs.length; i++){ typen.push(attrs[i].typ); }
+  el("lblStd").textContent = "new " + state.klasse + "()";
+  el("lblPar").textContent = "new " + state.klasse + "(" + typen.join(", ") + ")";
+}
+
 function zeichneSchalter(){
   var a0 = kl().attribute[0], n0 = a0.name, p0 = pName(a0), i;
   var knoepfe = el("schalter").querySelectorAll("button");
@@ -493,6 +502,7 @@ function zeichne(){
   el("werteFeld").hidden  = (state.ktyp !== "par");
   el("fehlerFeld").hidden = (state.ktyp !== "par");
   el("schalter").hidden   = (state.ktyp !== "par");
+  zeichneLabels();
   zeichneSchalter();
   el("btnSchritt").disabled = z.fertig;
   el("btnAlle").disabled = z.fertig;
