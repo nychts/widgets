@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sortier-Trainer – Karten in Kategorien einordnen (Reihe OOP Java)</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --reihe:#b35c00; --reihehell:#fdf6ee;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+    --code:"Consolas","DejaVu Sans Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:22px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.5;}
+  .wrap{max-width:900px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:16px 20px;
+    display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;}
+  header.top h1{font-size:19px; margin:0; font-weight:700;}
+  header.top p{margin:4px 0 0; font-size:13.5px; opacity:.92;}
+  .badge{background:#fff; color:var(--haupt); font-weight:700; border-radius:6px;
+    padding:5px 11px; font-size:13px; white-space:nowrap;}
+
+  .saetze{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0;}
+  .saetze button{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:13.5px;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt);}
+  .saetze button[aria-pressed=true]{background:var(--haupt); color:#fff;
+    border-color:var(--haupt); font-weight:700;}
+  .saetze button:focus-visible, .kat button:focus-visible, .steuer button:focus-visible{
+    outline:3px solid var(--orange); outline-offset:2px;}
+
+  .vorgehen{background:var(--reihehell); border-left:4px solid var(--reihe);
+    border-radius:0 6px 6px 0; padding:11px 15px; margin:16px 0; font-size:13.5px;}
+  .vorgehen b{color:var(--reihe);}
+
+  .fortschritt{display:flex; align-items:center; gap:12px; margin:18px 0 10px;
+    font-size:13px; color:var(--textgrau);}
+  .balken{flex:1; height:8px; background:var(--grau); border-radius:4px; overflow:hidden;}
+  .balken i{display:block; height:100%; background:var(--akzent); width:0; transition:width .25s;}
+
+  .karte{background:#fff; border:2px solid var(--haupt); border-radius:8px;
+    padding:26px 22px; text-align:center; min-height:132px;
+    display:flex; flex-direction:column; justify-content:center; gap:8px;}
+  .karte .kopf{font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--textgrau);}
+  .karte .inhalt{font-family:var(--code); font-size:19px; color:var(--haupt);
+    word-break:break-word;}
+  .karte .inhalt.satz{font-family:"Segoe UI",sans-serif; font-size:16px; color:var(--text);
+    line-height:1.45;}
+
+  .kat{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0;}
+  .kat button{flex:1 1 190px; padding:13px 12px; border-radius:7px; cursor:pointer;
+    border:1px solid var(--haupt); background:#fff; color:var(--haupt); font-size:14.5px;
+    font-weight:600; text-align:center; line-height:1.3;}
+  .kat button:hover:not(:disabled){background:var(--hell);}
+  .kat button:disabled{opacity:.5; cursor:default;}
+  .kat button .sub{display:block; font-weight:400; font-size:12px; color:var(--textgrau);
+    margin-top:3px;}
+  .kat button .taste{display:inline-block; border:1px solid var(--grau); border-radius:4px;
+    padding:0 5px; font-family:var(--code); font-size:11px; margin-right:6px; color:var(--textgrau);}
+
+  .rueck{border-radius:7px; padding:14px 16px; font-size:14px; min-height:64px;
+    border-left:5px solid var(--grau); background:#fff;}
+  .rueck.ok{background:var(--gruenhell); border-left-color:var(--gruen);}
+  .rueck.falsch{background:var(--rothell); border-left-color:var(--rot);}
+  .rueck b.ok{color:var(--gruen);} .rueck b.falsch{color:var(--rot);}
+  .rueck code{font-family:var(--code); font-size:13px;}
+
+  .steuer{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;}
+  .steuer button{padding:10px 18px; border-radius:6px; font-size:14px; cursor:pointer;
+    border:1px solid var(--haupt); background:var(--haupt); color:#fff; font-weight:600;}
+  .steuer button.sek{background:#fff; color:var(--haupt);}
+  .steuer button:disabled{opacity:.45; cursor:default;}
+
+  .bilanz{background:#fff; border:1px solid var(--grau); border-radius:8px; padding:18px 20px;}
+  .bilanz h2{margin:0 0 10px; font-size:16px; color:var(--haupt);}
+  .bilanz ul{margin:8px 0 0; padding-left:20px; font-size:13.5px;}
+  .bilanz li{margin-bottom:7px;}
+  .bilanz code{font-family:var(--code); font-size:13px;}
+  .treffer{font-size:15px; font-weight:700;}
+
+  footer{margin-top:22px; font-size:12px; color:var(--textgrau); text-align:center;}
+  .versteckt{display:none;}
+  @media (max-width:700px){
+    body{padding:14px;}
+    .karte .inhalt{font-size:16px;}
+    .kat button{flex:1 1 100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Sortier-Trainer</h1>
+      <p id="kopfzeile">Karte lesen, Kategorie wählen — die Begründung kommt sofort.</p>
+    </div>
+    <span class="badge" id="badge">Stunde 9</span>
+  </header>
+
+  <div class="saetze" role="group" aria-label="Kartensatz wählen" id="saetze"></div>
+
+  <div class="vorgehen">
+    <b>So geht's:</b> Für jede Karte entscheidest du dich für eine Kategorie. Du bekommst
+    sofort eine <b>Begründung</b> — auch wenn du richtig lagst. Am Ende kannst du gezielt
+    die Karten wiederholen, die noch nicht saßen. Mit den Tasten <b>1</b>, <b>2</b>, <b>3</b>
+    geht es schneller.
+  </div>
+
+  <div class="fortschritt">
+    <span id="zaehler">Karte 1 von 1</span>
+    <span class="balken"><i id="balken"></i></span>
+    <span id="punkte">0 richtig</span>
+  </div>
+
+  <div id="spiel">
+    <div class="karte">
+      <span class="kopf" id="kartenkopf">Karte</span>
+      <span class="inhalt" id="karteninhalt">…</span>
+    </div>
+
+    <div class="kat" id="kategorien" role="group" aria-label="Kategorie wählen"></div>
+
+    <div class="rueck" id="rueckmeldung" role="status" aria-live="polite">
+      Wähle eine Kategorie.
+    </div>
+
+    <div class="steuer">
+      <button type="button" id="btnWeiter" disabled>Nächste Karte</button>
+      <button type="button" id="btnNeu" class="sek">Von vorn</button>
+    </div>
+  </div>
+
+  <div id="ende" class="bilanz versteckt" role="status" aria-live="polite">
+    <h2>Durchgang beendet</h2>
+    <p class="treffer" id="bilanzText"></p>
+    <div id="bilanzListe"></div>
+    <div class="steuer">
+      <button type="button" id="btnFalsche">Nur die falschen wiederholen</button>
+      <button type="button" id="btnAlleNeu" class="sek">Alle Karten neu</button>
+    </div>
+  </div>
+
+  <footer id="fuss">Interaktives Material zur Reihe „Objektorientierte Modellierung und
+    Programmierung in Java“ · Informatik EF</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   DATEN — je Stunde ein Kartensatz. Neue Stunde = neuer Eintrag,
+   die Mechanik darunter bleibt unverändert (Widget-Typ T1).
+   ============================================================ */
+var SAETZE = {
+  s09: {
+    tab: "Stunde 9",
+    badge: "Stunde 9",
+    titel: "Attribut, Methode — oder gar nicht ins Diagramm?",
+    kopfzeile: "Was gehört in welches Fach des Klassendiagramms?",
+    stil: "code",
+    kategorien: [
+      { id:"attr", label:"Attributfach",  sub:"wird gespeichert" },
+      { id:"meth", label:"Methodenfach",  sub:"wird ausgeführt" },
+      { id:"weg",  label:"gehört nicht hinein", sub:"lässt sich berechnen" }
+    ],
+    karten: [
+      { text:"- nachname : String", kat:"attr",
+        grund:"Der Nachname wird vom Ausweis übernommen und dauerhaft im Objekt gespeichert. Er lässt sich aus nichts anderem herleiten." },
+      { text:"+ berechneAlter() : int", kat:"meth",
+        grund:"Das Alter wird bei Bedarf aus dem Geburtsdatum ausgerechnet. Runde Klammern und ein Rückgabetyp — das ist eine Methode." },
+      { text:"- alter : int", kat:"weg",
+        grund:"Das ist der Stolperstein der Stunde: Das Alter lässt sich jederzeit aus dem Geburtsdatum berechnen. Als eigenes Attribut wäre es ein zweiter Speicherort, der ab dem nächsten Geburtstag falsch ist." },
+      { text:"- tag : int", kat:"attr",
+        grund:"Ein Datum besteht aus tag, monat und jahr. Diese drei Werte müssen gespeichert werden, sonst weiß das Objekt nichts." },
+      { text:"+ Datum(pTag, pMonat, pJahr)", kat:"meth",
+        grund:"Ein Konstruktor steht im Methodenfach. Er trägt den Klassennamen und hat keinen Rückgabetyp — ausgeführt wird er trotzdem." },
+      { text:"- plz : int", kat:"attr",
+        grund:"Die Postleitzahl gehört zur Anschrift und wird gespeichert. Beachte: als int, weil damit nicht gerechnet, aber auch nichts abgeschnitten wird." },
+      { text:"+ gibTelefon() : String", kat:"meth",
+        grund:"Eine Anfrage: Sie liefert den gespeicherten Wert zurück, ohne ihn zu verändern. Das Attribut dahinter heißt telefon." },
+      { text:"+ setzeTelefon(pTelefon)", kat:"meth",
+        grund:"Ein Auftrag: Er verändert den Zustand des Objekts und gibt nichts zurück. Parameter mit p-Präfix, wie in dieser Reihe vereinbart." },
+      { text:"- spendetHerz : boolean", kat:"attr",
+        grund:"Die Entscheidung zur Herzspende wird in der Erklaerung gespeichert — ein Wahrheitswert, der nur aus dem Ausweis kommen kann." },
+      { text:"+ istVolljaehrig() : boolean", kat:"meth",
+        grund:"Wird aus dem Geburtsdatum entschieden, sobald man die Antwort braucht. Genau wie berechneAlter() eine Anfrage." },
+      { text:"- vollstaendigeAdresse : String", kat:"weg",
+        grund:"Lässt sich aus strasse, hausnummer, plz und wohnort zusammensetzen. Deshalb keine eigene Zeile im Attributfach, sondern eine Methode gibVollstaendigeAdresse()." },
+      { text:"- ausweisnummer : String", kat:"attr",
+        grund:"Die Nummer steht auf dem Ausweis und wird gespeichert. String, nicht int: Mit ihr wird nicht gerechnet, und führende Nullen dürfen nicht verlorengehen." }
+    ]
+  },
+
+  s18: {
+    tab: "Stunde 18",
+    badge: "Stunde 18",
+    titel: "Compilerfehler, Laufzeitfehler oder Logikfehler?",
+    kopfzeile: "Wann fällt der Fehler auf — beim Übersetzen, beim Laufen oder erst am Ergebnis?",
+    stil: "satz",
+    kategorien: [
+      { id:"comp", label:"Compilerfehler", sub:"übersetzt gar nicht erst" },
+      { id:"lauf", label:"Laufzeitfehler", sub:"bricht mitten im Lauf ab" },
+      { id:"log",  label:"Logikfehler",    sub:"läuft durch, Ergebnis falsch" }
+    ],
+    karten: [
+      { text:"missing return statement", kat:"comp",
+        grund:"Der Compiler sieht einen Pfad durch die Methode, auf dem kein return steht. Das Programm entsteht gar nicht erst — der Fehler aus Stunde 16." },
+      { text:"Das Programm bricht ab: NullPointerException, weil auf ausweise[0].gibPerson() zugegriffen wird, obwohl der Platz noch leer ist.", kat:"lauf",
+        grund:"Der Quelltext ist syntaktisch einwandfrei — erst beim Ausführen zeigt sich, dass dort noch kein Objekt liegt. Genau die Falle aus Stunde 22." },
+      { text:"istVolljaehrig() liefert bei einer 20-jährigen Person false, weil im Vergleich < statt >= steht.", kat:"log",
+        grund:"Alles übersetzt, nichts stürzt ab — nur das Ergebnis stimmt nicht. Solche Fehler findet nur ein Testfall, deshalb Stunde 21." },
+      { text:"cannot find symbol: variable ausweisnummer", kat:"comp",
+        grund:"Der Name ist an dieser Stelle nicht bekannt: falsch geschrieben, nicht deklariert oder außerhalb seines Gültigkeitsbereichs. Der Compiler nennt die Zeile." },
+      { text:"Das Programm bricht ab: ArithmeticException — im Nenner stand eine Variable, die zur Laufzeit 0 war.", kat:"lauf",
+        grund:"Durch null teilen darf man nicht. Beim Übersetzen konnte niemand wissen, welchen Wert die Variable später hat." },
+      { text:"darfSpenden() liefert für jede Person true, weil in der Bedingung ein Gleichheitszeichen zu wenig steht.", kat:"log",
+        grund:"Die Zuweisung in der Bedingung ist gültiges Java — deshalb meckert der Compiler nicht. Der Stolperstein aus Stunde 17." },
+      { text:"';' expected", kat:"comp",
+        grund:"Ein fehlendes Semikolon. Der Compiler zeigt oft auf die Folgezeile, weil er erst dort merkt, dass etwas fehlt — Zeile davor prüfen." },
+      { text:"Die Zählschleife läuft bis i <= anzahl und greift dabei auf einen Platz zu, den es im Feld nicht gibt.", kat:"lauf",
+        grund:"Der klassische Off-by-one aus Stunde 19: Der letzte gültige Index ist anzahl minus eins. Abbruch mit ArrayIndexOutOfBoundsException." },
+      { text:"Die Zählschleife startet bei 1 statt bei 0 — das erste Organ wird nie geprüft.", kat:"log",
+        grund:"Auch ein Off-by-one, aber diesmal ohne Absturz: Das Programm läuft sauber durch und zählt einfach falsch. Deshalb schwerer zu finden als der Abbruch." },
+      { text:"incompatible types: String cannot be converted to int", kat:"comp",
+        grund:"Ein Typfehler. Der Compiler prüft die Datentypen, bevor irgendetwas läuft — der Schutz, den Stunde 8 begründet hat." }
+    ]
+  }
+};
+
+/* ============================================================
+   MECHANIK — unabhängig vom Kartensatz.
+   ============================================================ */
+var el = function(id){ return document.getElementById(id); };
+
+var state = { satz:null, reihenfolge:[], pos:0, richtig:0, fehler:[], beantwortet:false };
+
+function mischen(arr){
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function satz(){ return SAETZE[state.satz]; }
+function karte(){ return satz().karten[state.reihenfolge[state.pos]]; }
+function katById(id){
+  var ks = satz().kategorien;
+  for (var i = 0; i < ks.length; i++){ if (ks[i].id === id) return ks[i]; }
+  return null;
+}
+
+function zeichneSatzTabs(){
+  var box = el("saetze");
+  box.innerHTML = "";
+  Object.keys(SAETZE).forEach(function(key){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = SAETZE[key].tab;
+    b.setAttribute("aria-pressed", key === state.satz ? "true" : "false");
+    b.addEventListener("click", function(){ starte(key, null); });
+    box.appendChild(b);
+  });
+}
+
+function zeichneKategorien(){
+  var box = el("kategorien");
+  box.innerHTML = "";
+  satz().kategorien.forEach(function(k, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.dataset.kat = k.id;
+    b.innerHTML = '<span class="taste">' + (i + 1) + '</span>' +
+      k.label + '<span class="sub">' + k.sub + '</span>';
+    b.addEventListener("click", function(){ waehle(k.id); });
+    box.appendChild(b);
+  });
+}
+
+function katButtons(){ return el("kategorien").querySelectorAll("button"); }
+
+function zeichneKarte(){
+  var k = karte();
+  var s = satz();
+  el("kartenkopf").textContent = s.titel;
+  var inhalt = el("karteninhalt");
+  inhalt.textContent = k.text;
+  inhalt.className = "inhalt" + (s.stil === "satz" ? " satz" : "");
+  el("zaehler").textContent = "Karte " + (state.pos + 1) + " von " + state.reihenfolge.length;
+  el("punkte").textContent = state.richtig + " richtig";
+  el("balken").style.width = Math.round(state.pos / state.reihenfolge.length * 100) + "%";
+
+  var r = el("rueckmeldung");
+  r.className = "rueck";
+  r.textContent = "Wähle eine Kategorie.";
+  el("btnWeiter").disabled = true;
+  state.beantwortet = false;
+  var bs = katButtons();
+  for (var i = 0; i < bs.length; i++){ bs[i].disabled = false; }
+}
+
+function waehle(katId){
+  if (state.beantwortet) return;
+  state.beantwortet = true;
+
+  var k = karte();
+  var ok = (katId === k.kat);
+  if (ok) state.richtig++;
+  else state.fehler.push({ text:k.text, richtig:k.kat, gewaehlt:katId, grund:k.grund });
+
+  var r = el("rueckmeldung");
+  r.className = "rueck " + (ok ? "ok" : "falsch");
+  var kopf = ok
+    ? '<b class="ok">Richtig.</b> '
+    : '<b class="falsch">Nicht ganz.</b> Richtig wäre <b>' + katById(k.kat).label + '</b>. ';
+  r.innerHTML = kopf + k.grund;
+
+  var bs = katButtons();
+  for (var i = 0; i < bs.length; i++){ bs[i].disabled = true; }
+  el("btnWeiter").disabled = false;
+  el("btnWeiter").textContent =
+    (state.pos + 1 >= state.reihenfolge.length) ? "Bilanz anzeigen" : "Nächste Karte";
+  el("punkte").textContent = state.richtig + " richtig";
+}
+
+function weiter(){
+  if (!state.beantwortet) return;
+  if (state.pos + 1 >= state.reihenfolge.length){ zeigeBilanz(); return; }
+  state.pos++;
+  zeichneKarte();
+}
+
+function zeigeBilanz(){
+  el("spiel").classList.add("versteckt");
+  el("ende").classList.remove("versteckt");
+  el("balken").style.width = "100%";
+
+  var n = state.reihenfolge.length;
+  el("bilanzText").textContent = state.richtig + " von " + n + " Karten richtig eingeordnet.";
+
+  var box = el("bilanzListe");
+  box.innerHTML = "";
+  if (state.fehler.length === 0){
+    var p = document.createElement("p");
+    p.textContent = "Alle Karten saßen. Wechsle den Kartensatz oben oder mische neu.";
+    box.appendChild(p);
+    el("btnFalsche").disabled = true;
+  } else {
+    var h = document.createElement("p");
+    h.textContent = "Diese Karten waren noch nicht sicher:";
+    box.appendChild(h);
+    var ul = document.createElement("ul");
+    state.fehler.forEach(function(f){
+      var li = document.createElement("li");
+      var code = document.createElement("code");
+      code.textContent = f.text;
+      li.appendChild(code);
+      li.appendChild(document.createTextNode(" — " + katById(f.richtig).label + ". " + f.grund));
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    el("btnFalsche").disabled = false;
+  }
+}
+
+function starte(satzKey, nurIndizes){
+  state.satz = satzKey;
+  var s = satz();
+  el("badge").textContent = s.badge;
+  el("kopfzeile").textContent = s.kopfzeile;
+  document.title = "Sortier-Trainer – " + s.titel;
+
+  var indizes;
+  if (nurIndizes && nurIndizes.length){
+    indizes = nurIndizes.slice();
+  } else {
+    indizes = [];
+    for (var i = 0; i < s.karten.length; i++){ indizes.push(i); }
+    indizes = mischen(indizes);
+  }
+  state.reihenfolge = indizes;
+  state.pos = 0; state.richtig = 0; state.fehler = []; state.beantwortet = false;
+
+  el("ende").classList.add("versteckt");
+  el("spiel").classList.remove("versteckt");
+  zeichneSatzTabs();
+  zeichneKategorien();
+  zeichneKarte();
+  if (location.hash.replace("#","") !== satzKey){
+    try { history.replaceState(null, "", "#" + satzKey); } catch(e){}
+  }
+}
+
+function indizesVonFehlern(){
+  var s = satz(), out = [];
+  state.fehler.forEach(function(f){
+    for (var i = 0; i < s.karten.length; i++){
+      if (s.karten[i].text === f.text && out.indexOf(i) === -1){ out.push(i); break; }
+    }
+  });
+  return out;
+}
+
+el("btnWeiter").addEventListener("click", weiter);
+el("btnNeu").addEventListener("click", function(){ starte(state.satz, null); });
+el("btnAlleNeu").addEventListener("click", function(){ starte(state.satz, null); });
+el("btnFalsche").addEventListener("click", function(){
+  var idx = indizesVonFehlern();
+  starte(state.satz, idx.length ? idx : null);
+});
+
+document.addEventListener("keydown", function(ev){
+  if (ev.target && /^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  if (ev.key === "Enter" && !el("btnWeiter").disabled){ weiter(); return; }
+  var n = parseInt(ev.key, 10);
+  if (!isNaN(n) && n >= 1 && n <= satz().kategorien.length && !state.beantwortet){
+    waehle(satz().kategorien[n - 1].id);
+  }
+});
+
+var start = location.hash.replace("#", "");
+starte(SAETZE[start] ? start : "s09", null);
+</script>
+</body>
+</html>
