@@ -157,6 +157,40 @@
    die Mechanik darunter bleibt unverändert (Widget-Typ T1).
    ============================================================ */
 var SAETZE = {
+  s03: {
+    tab: "Stunde 3",
+    badge: "Stunde 3",
+    titel: "Welche Eigenschaft verletzt diese Vorschrift?",
+    kopfzeile: "Jede Vorschrift unten verstößt gegen genau eine Algorithmus-Eigenschaft.",
+    stil: "satz",
+    kategorien: [
+      { id:"eind", label:"Eindeutigkeit",   sub:"jeder versteht es anders" },
+      { id:"det",  label:"Determiniertheit", sub:"gleiche Eingabe, anderes Ergebnis" },
+      { id:"fin",  label:"Finitheit",        sub:"die Beschreibung ist endlos" },
+      { id:"term", label:"Terminierung",     sub:"die Ausführung hält nie an" }
+    ],
+    karten: [
+      { text:"Sortiere die Karten so, wie es dir sinnvoll erscheint.", kat:"eind",
+        grund:"„Sinnvoll“ ist Auslegungssache — zwei Personen würden verschieden vorgehen. Der Schritt ist nicht eindeutig formuliert." },
+      { text:"Vertausche zwei zufällig gewählte Karten.", kat:"det",
+        grund:"Bei derselben Startreihenfolge kommt mal dieses, mal jenes Ergebnis heraus. Die Vorschrift ist eindeutig zu verstehen, aber nicht determiniert." },
+      { text:"Mische die Karten. Liegt der König oben, höre auf. Sonst gehe zurück zum Mischen. (Der König liegt gar nicht im Stapel.)", kat:"term",
+        grund:"Drei Schritte, also endlich aufgeschrieben — aber die Abbruchbedingung kann nie eintreten. Genau der Unterschied zwischen Finitheit und Terminierung." },
+      { text:"Führe Schritt 1 aus, dann Schritt 2, dann Schritt 3, dann Schritt 4 — und so weiter, für jede natürliche Zahl eine eigene Zeile.", kat:"fin",
+        grund:"Hier ist schon die Beschreibung unendlich lang. Man kann sie gar nicht zu Ende lesen, geschweige denn ausführen." },
+      { text:"Backe den Kuchen, bis er goldbraun ist.", kat:"eind",
+        grund:"Wann ist goldbraun erreicht? Zwei Personen entscheiden das verschieden — dieselbe Schwäche wie im Apfelkuchen-Rezept aus dem Einstieg." },
+      { text:"Zähle von 1 aufwärts, bis du bei 0 ankommst.", kat:"term",
+        grund:"Ein Satz, also finit. Aber aufwärts erreicht man die 0 nie — die Ausführung hält nicht an." },
+      { text:"Würfle. Ist die Augenzahl gerade, nimm die linke Karte, sonst die rechte.", kat:"det",
+        grund:"Jeder Schritt ist klar formuliert und die Vorschrift hält an. Nur das Ergebnis hängt vom Würfel ab, nicht von der Eingabe." },
+      { text:"Wiederhole den letzten Schritt so oft, wie es angemessen erscheint.", kat:"eind",
+        grund:"„Angemessen“ legt nicht fest, wie oft. Anders als beim Würfel ist hier nicht der Zufall das Problem, sondern die unklare Formulierung." },
+      { text:"Um zu prüfen, ob deine Zahl eine Primzahl ist, schlage sie in der Tabelle aller natürlichen Zahlen nach.", kat:"fin",
+        grund:"Der Schritt selbst ist eindeutig und würde anhalten — aber die Vorschrift beruft sich auf eine unendlich lange Tabelle. Damit ist die Beschreibung nicht endlich." }
+    ]
+  },
+
   s09: {
     tab: "Stunde 9",
     badge: "Stunde 9",
@@ -193,6 +227,71 @@ var SAETZE = {
         grund:"Lässt sich aus strasse, hausnummer, plz und wohnort zusammensetzen. Deshalb keine eigene Zeile im Attributfach, sondern eine Methode gibVollstaendigeAdresse()." },
       { text:"- ausweisnummer : String", kat:"attr",
         grund:"Die Nummer steht auf dem Ausweis und wird gespeichert. String, nicht int: Mit ihr wird nicht gerechnet, und führende Nullen dürfen nicht verlorengehen." }
+    ]
+  },
+
+  s10: {
+    tab: "Stunde 10",
+    badge: "Stunde 10",
+    titel: "Welche Ursache steckt hinter der Meldung?",
+    kopfzeile: "Vier Ursachen aus Fehlerprobe.java — welche passt zu welcher Meldung?",
+    stil: "satz",
+    kategorien: [
+      { id:"unbek",   label:"unbekannte Variable",  sub:"Tippfehler oder nie deklariert" },
+      { id:"gueltig", label:"außerhalb des Gültigkeitsbereichs", sub:"deklariert, aber nicht hier" },
+      { id:"forward", label:"illegal forward reference", sub:"zu früh benutzt" },
+      { id:"statisch",label:"non-static aus statischem Kontext", sub:"kein Objekt vorhanden" }
+    ],
+    karten: [
+      { text:"error: cannot find symbol — symbol: variable pruefwrt. Im übrigen Quelltext heißt sie pruefwert.", kat:"unbek",
+        grund:"Ein Buchstabendreher. Für den Compiler ist pruefwrt ein völlig neuer Name, den nie jemand deklariert hat." },
+      { text:"private int summe = anzahlOrgane; — das Attribut anzahlOrgane wird erst zwei Zeilen darunter deklariert.", kat:"forward",
+        grund:"Attribute werden von oben nach unten aufgebaut. Beim Belegen von summe existiert anzahlOrgane noch nicht — deshalb illegal forward reference." },
+      { text:"error: non-static variable anzahlOrgane cannot be referenced from a static context", kat:"statisch",
+        grund:"main() läuft, bevor irgendein Objekt existiert. Ein Attribut gehört aber immer zu einem Objekt — ohne Objekt gibt es den Wert nicht." },
+      { text:"Die Variable hinweis wurde innerhalb der geschweiften Klammern einer if-Anweisung deklariert und soll danach ausgegeben werden.", kat:"gueltig",
+        grund:"Mit der schließenden Klammer endet der Gültigkeitsbereich. Die Variable war korrekt deklariert — nur eben nicht mehr an dieser Stelle." },
+      { text:"error: cannot find symbol — symbol: variable nachnme", kat:"unbek",
+        grund:"Wieder ein Tippfehler. Die Meldung nennt den Namen, den der Compiler gelesen hat — Vergleich mit der Deklaration genügt zum Finden." },
+      { text:"Eine Zählvariable wird im Kopf der for-Schleife deklariert und nach dem Schleifenende ausgegeben.", kat:"gueltig",
+        grund:"Was im Schleifenkopf deklariert wird, lebt nur innerhalb der Schleife. Nach der schließenden Klammer ist der Name wieder unbekannt." },
+      { text:"main() ruft direkt gibNachname() auf, obwohl vorher kein Person-Objekt erzeugt wurde.", kat:"statisch",
+        grund:"Eine Methode des Objekts braucht ein Objekt, an dem sie arbeitet. Ohne new fehlt der Empfänger — derselbe Grund wie beim Attributzugriff." },
+      { text:"private Datum ausstellung = geburtstag; — geburtstag steht weiter unten in der Attributliste.", kat:"forward",
+        grund:"Dieselbe Falle wie oben, nur mit Objekttypen. Die Reihenfolge der Attributdeklarationen entscheidet, was schon benutzbar ist." }
+    ]
+  },
+
+  s13: {
+    tab: "Stunde 13",
+    badge: "Stunde 13",
+    titel: "Konstruktor, Auftrag oder Anfrage?",
+    kopfzeile: "Am Methodenkopf allein erkennbar — Rückgabetyp und Parameter verraten es.",
+    stil: "code",
+    kategorien: [
+      { id:"konst",   label:"Konstruktor", sub:"heißt wie die Klasse" },
+      { id:"auftrag", label:"Auftrag (set)", sub:"void, verändert etwas" },
+      { id:"anfrage", label:"Anfrage (get)", sub:"gibt einen Wert zurück" }
+    ],
+    karten: [
+      { text:"public Person(String pVorname, String pNachname)", kat:"konst",
+        grund:"Trägt den Klassennamen und hat gar keinen Rückgabetyp — auch kein void. Läuft automatisch beim new." },
+      { text:"public String gibNachname()", kat:"anfrage",
+        grund:"Rückgabetyp String, keine Parameter: Die Methode liefert einen gespeicherten Wert und verändert nichts." },
+      { text:"public void setzeNachname(String pNachname)", kat:"auftrag",
+        grund:"void plus ein Parameter mit p-Präfix: Die Methode nimmt einen Wert entgegen und schreibt ihn ins Attribut." },
+      { text:"public boolean istVolljaehrig()", kat:"anfrage",
+        grund:"Auch eine Anfrage, obwohl der Name nicht mit gib anfängt: Sie liefert ein Ergebnis zurück, ohne den Zustand zu ändern." },
+      { text:"public Datum()", kat:"konst",
+        grund:"Der Standardkonstruktor: Klassenname, leere Parameterliste, kein Rückgabetyp. Er setzt feste Anfangswerte." },
+      { text:"public void setzePlz(int pPlz)", kat:"auftrag",
+        grund:"Verändert die Postleitzahl der Anschrift. Nichts kommt zurück — der Effekt steckt im veränderten Objekt." },
+      { text:"public int berechneAlter()", kat:"anfrage",
+        grund:"Rückgabetyp int, keine Parameter. Sie rechnet aus dem Geburtsdatum und gibt das Ergebnis zurück, ohne etwas zu speichern." },
+      { text:"public Anschrift(String pStrasse, String pHausnummer, int pPlz, String pWohnort)", kat:"konst",
+        grund:"Der parametrisierte Konstruktor der Anschrift. Vier Parameter, kein Rückgabetyp, Name gleich Klassenname." },
+      { text:"public void setzeTelefon(String pTelefon)", kat:"auftrag",
+        grund:"Klassischer Auftrag an die Kontaktperson: ein Parameter hinein, keine Rückgabe hinaus." }
     ]
   },
 
