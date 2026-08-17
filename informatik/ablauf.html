@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ablauf-Visualisierer – Code Schritt für Schritt (Reihe OOP Java)</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --reihe:#b35c00; --reihehell:#fdf6ee;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --gelb:#fff3c4;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+    --code:"Consolas","DejaVu Sans Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:22px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.5;}
+  .wrap{max-width:1180px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:16px 20px;
+    display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;}
+  header.top h1{font-size:19px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:13.5px; opacity:.92;}
+  .badge{background:#fff; color:var(--haupt); font-weight:700; border-radius:6px;
+    padding:5px 11px; font-size:13px; white-space:nowrap;}
+
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0;}
+  .tabs button{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:13.5px;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt);}
+  .tabs button[aria-pressed=true]{background:var(--haupt); color:#fff;
+    border-color:var(--haupt); font-weight:700;}
+  button:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+
+  .vorgehen{background:var(--reihehell); border-left:4px solid var(--reihe);
+    border-radius:0 6px 6px 0; padding:11px 15px; margin:16px 0; font-size:13.5px;}
+  .vorgehen b{color:var(--reihe);}
+
+  .grid{display:grid; grid-template-columns:1.15fr 1fr; gap:16px; margin-top:16px;}
+  .card{background:#fff; border:1px solid var(--grau); border-radius:8px; padding:14px 16px;}
+  .card h2{font-size:14px; color:var(--haupt); margin:0 0 10px; letter-spacing:.02em;}
+
+  .eingaben{display:flex; flex-direction:column; gap:10px;}
+  .ez{display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:13.5px;}
+  .ez label{min-width:150px;}
+  .ez input[type=range]{flex:1; min-width:120px;}
+  .ez output{font-family:var(--code); font-weight:700; color:var(--haupt); min-width:56px;}
+  .ez select{padding:5px 8px; border:1px solid var(--grau); border-radius:5px;
+    font-family:var(--code); font-size:13px;}
+  .organe{display:flex; flex-wrap:wrap; gap:6px;}
+  .organe label{display:inline-flex; align-items:center; gap:5px; border:1px solid var(--grau);
+    border-radius:5px; padding:4px 8px; font-size:12.5px; font-family:var(--code); cursor:pointer;}
+
+  pre.code{margin:0; font-family:var(--code); font-size:13px; line-height:1.65;
+    background:#fdfdfd; border:1px solid var(--grau); border-radius:6px; overflow-x:auto;}
+  pre.code .z{display:block; padding:1px 10px 1px 46px; position:relative; white-space:pre;}
+  pre.code .z::before{content:attr(data-nr); position:absolute; left:0; width:34px;
+    text-align:right; color:#aab; font-size:11.5px;}
+  pre.code .z.aktiv{background:var(--gelb); font-weight:700;}
+  pre.code .z.tot{opacity:.35;}
+  pre.code .z.fehler{background:var(--rothell); color:var(--rot); font-weight:700;}
+
+  .steuer{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .steuer button{padding:9px 15px; border-radius:6px; font-size:13.5px; cursor:pointer;
+    border:1px solid var(--haupt); background:var(--haupt); color:#fff; font-weight:600;}
+  .steuer button.sek{background:#fff; color:var(--haupt);}
+  .steuer button:disabled{opacity:.4; cursor:default;}
+
+  .notiz{margin-top:12px; border-left:5px solid var(--akzent); background:var(--hell);
+    border-radius:0 6px 6px 0; padding:11px 14px; font-size:13.5px; min-height:58px;}
+  .notiz.fehler{border-left-color:var(--rot); background:var(--rothell);}
+  .notiz.fertig{border-left-color:var(--gruen); background:var(--gruenhell);}
+  .notiz code{font-family:var(--code); font-size:12.5px;}
+
+  table.vars, table.trace{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.vars td, table.vars th, table.trace td, table.trace th{
+    border:1px solid var(--grau); padding:4px 7px; text-align:left;}
+  table.vars th, table.trace th{background:var(--hell); color:var(--haupt);
+    font-family:"Segoe UI",sans-serif;}
+  table.vars td.w, table.trace td{font-family:var(--code);}
+  table.trace tr.neu td{background:var(--gelb);}
+  table.trace tr.abbruch td{background:var(--rothell); color:var(--rot); font-weight:700;}
+  .tracewrap{max-height:260px; overflow:auto;}
+
+  .feld{display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;}
+  .zelle{min-width:62px; border:1.5px solid var(--grau); border-radius:5px; text-align:center;
+    font-family:var(--code); font-size:12px; background:#fff;}
+  .zelle .idx{display:block; background:var(--hell); color:var(--haupt); font-size:11px;
+    border-bottom:1px solid var(--grau); padding:1px 0;}
+  .zelle .val{display:block; padding:7px 4px; word-break:break-all;}
+  .zelle .val.leer{color:#aab; font-style:italic;}
+  .zelle.zeiger{border-color:var(--orange); border-width:2.5px; box-shadow:0 0 0 3px #f6dcc2;}
+  .zelle.treffer{border-color:var(--gruen); background:var(--gruenhell);}
+  .zelle.ausserhalb{border-color:var(--rot); background:var(--rothell);}
+  .feldrand{font-size:12px; color:var(--textgrau); margin-top:6px;}
+
+  footer{margin-top:22px; font-size:12px; color:var(--textgrau); text-align:center;}
+  .versteckt{display:none;}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr;} body{padding:14px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Ablauf-Visualisierer</h1>
+      <p id="kopfzeile">Werte einstellen, dann Schritt für Schritt durch den Code gehen.</p>
+    </div>
+    <span class="badge" id="badge">Stunde 17</span>
+  </header>
+
+  <div class="tabs" role="group" aria-label="Szenario wählen" id="tabs"></div>
+
+  <div class="vorgehen">
+    <b>So geht's:</b> Links stellst du die Werte ein — der Ablauf wird sofort neu berechnet.
+    Mit <b>Schritt</b> gehst du durch den Code; die gelbe Zeile läuft gerade. Rechts siehst du,
+    was dabei im Speicher passiert. Taste <b>→</b> für einen Schritt, <b>Pos 1</b> für zurück
+    auf Anfang.
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2 id="codetitel">Quelltext</h2>
+      <pre class="code" id="code" aria-label="Quelltext, die hervorgehobene Zeile wird gerade ausgeführt"></pre>
+      <div class="steuer">
+        <button type="button" id="btnSchritt">Schritt →</button>
+        <button type="button" id="btnAlle" class="sek">Bis zum Ende</button>
+        <button type="button" id="btnReset" class="sek">Zurücksetzen</button>
+      </div>
+      <div class="notiz" id="notiz" role="status" aria-live="polite">Bereit.</div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h2>Werte einstellen</h2>
+        <div class="eingaben" id="eingaben"></div>
+      </div>
+      <div class="card" id="panelVars" style="margin-bottom:14px;">
+        <h2>Speicher</h2>
+        <table class="vars"><tbody id="varsBody"></tbody></table>
+      </div>
+      <div class="card versteckt" id="panelFeld" style="margin-bottom:14px;">
+        <h2 id="feldTitel">Feld</h2>
+        <div class="feld" id="feld"></div>
+        <div class="feldrand" id="feldrand"></div>
+      </div>
+      <div class="card versteckt" id="panelTrace">
+        <h2>Trace-Tabelle</h2>
+        <div class="tracewrap">
+          <table class="trace">
+            <thead id="traceKopf"></thead>
+            <tbody id="traceBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Interaktives Material zur Reihe „Objektorientierte Modellierung und
+    Programmierung in Java“ · Informatik EF</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   SZENARIEN. Jedes berechnet in lauf() den KOMPLETTEN Ablauf
+   vorab als Schrittliste — die Anzeige spult ihn nur ab.
+   Ein Schritt: {zeile, notiz, vars, tot?, fehler?, fertig?,
+                 trace?, feld?, zeiger?, treffer?}
+   ============================================================ */
+var ORGANE = ["Herz", "Niere", "Leber", "Lunge", "Hornhaut"];
+
+var SZENARIEN = {
+  s17: {
+    tab: "Stunde 17", badge: "Stunde 17",
+    kopfzeile: "Geburtsjahr schieben — der genommene Zweig leuchtet auf.",
+    codetitel: "Person.istVolljaehrig()",
+    panels: [],
+    code: [
+      "public boolean istVolljaehrig()",
+      "{",
+      "    int aktuellesJahr = 2026;",
+      "",
+      "    if (aktuellesJahr - geburtsdatum.gibJahr() >= 18)",
+      "    {",
+      "        return true;",
+      "    }",
+      "    else",
+      "    {",
+      "        return false;",
+      "    }",
+      "}"
+    ],
+    eingaben: [
+      { id:"gebJahr", label:"Geburtsjahr", typ:"range", min:1996, max:2026, wert:2008 }
+    ],
+    lauf: function(e){
+      var s = [], alter = 2026 - e.gebJahr, bed = alter >= 18;
+      s.push({ zeile:0, notiz:"Die Methode wird aufgerufen. Rückgabetyp <code>boolean</code> — am Ende muss auf jedem Weg ein <code>return</code> stehen.",
+               vars:{ "geburtsjahr": e.gebJahr } });
+      s.push({ zeile:2, notiz:"Die lokale Variable <code>aktuellesJahr</code> entsteht und wird mit 2026 belegt.",
+               vars:{ "geburtsjahr": e.gebJahr, "aktuellesJahr": 2026 } });
+      s.push({ zeile:4, notiz:"Die Bedingung wird ausgerechnet: 2026 − " + e.gebJahr + " = " + alter +
+               ", und " + alter + " >= 18 ist <b>" + bed + "</b>.",
+               vars:{ "geburtsjahr": e.gebJahr, "aktuellesJahr": 2026, "Alter (gerechnet)": alter, "Bedingung": String(bed) } });
+      var totZweig = bed ? [8,9,10,11] : [5,6,7];
+      s.push({ zeile: bed ? 6 : 10,
+               notiz: bed
+                 ? "Die Bedingung war <b>true</b> — der <code>if</code>-Zweig wird genommen. Der <code>else</code>-Zweig läuft nie."
+                 : "Die Bedingung war <b>false</b> — nur der <code>else</code>-Zweig läuft. Der <code>if</code>-Zweig wird übersprungen.",
+               tot: totZweig,
+               vars:{ "geburtsjahr": e.gebJahr, "aktuellesJahr": 2026, "Alter (gerechnet)": alter, "Bedingung": String(bed) } });
+      s.push({ zeile: bed ? 6 : 10, fertig:true,
+               notiz:"Mit <code>return</code> endet die Methode sofort und liefert <b>" + bed + "</b> zurück. " +
+                     (alter === 18 ? "Achtung: genau 18 Jahre — der Randfall aus Stunde 21." : ""),
+               tot: totZweig,
+               vars:{ "geburtsjahr": e.gebJahr, "aktuellesJahr": 2026, "Alter (gerechnet)": alter, "Rückgabe": String(bed) } });
+      return s;
+    }
+  },
+
+  s19: {
+    tab: "Stunde 19", badge: "Stunde 19",
+    kopfzeile: "Organe an- und abwählen, Schleifengrenze umstellen — die Trace-Tabelle läuft mit.",
+    codetitel: "Erklaerung.meldeAlleOrgane()",
+    panels: ["trace"],
+    traceKopf: ["i", "Bedingung", "ORGANNAMEN[i]", "spendet[i]", "anzahl"],
+    code: [
+      "public int meldeAlleOrgane()",
+      "{",
+      "    int anzahl = 0;",
+      "",
+      "    for (int i = 0; i GRENZE ORGANNAMEN.length; i++)",
+      "    {",
+      "        if (spendet[i])",
+      "        {",
+      "            anzahl = anzahl + 1;",
+      "        }",
+      "    }",
+      "    return anzahl;",
+      "}"
+    ],
+    eingaben: [
+      { id:"spendet", label:"Freigegebene Organe", typ:"organe", wert:[true,true,false,true,false] },
+      { id:"grenze", label:"Schleifengrenze", typ:"select", wert:"<",
+        optionen:[ {w:"<", t:"i < ORGANNAMEN.length  (richtig)"},
+                   {w:"<=", t:"i <= ORGANNAMEN.length  (ein Schritt zu weit)"} ] }
+    ],
+    lauf: function(e){
+      var s = [], anzahl = 0, n = ORGANE.length;
+      s.push({ zeile:2, notiz:"Der Zähler <code>anzahl</code> startet bei 0.", vars:{ anzahl:0 } });
+      for (var i = 0; ; i++){
+        var weiter = (e.grenze === "<") ? (i < n) : (i <= n);
+        s.push({ zeile:4, notiz:"Schleifenkopf: <code>i = " + i + "</code>, Bedingung <code>" + i + " " +
+                   e.grenze + " " + n + "</code> ist <b>" + weiter + "</b>.",
+                 vars:{ i:i, anzahl:anzahl, "Bedingung": String(weiter) } });
+        if (!weiter) break;
+        if (i >= n){
+          s.push({ zeile:6, fehler:true,
+                   notiz:"<b>ArrayIndexOutOfBoundsException:</b> Index " + i + " gibt es nicht — gültig sind 0 bis " + (n-1) +
+                         ". Das Programm bricht hier ab. Genau das passiert bei <code>&lt;=</code>.",
+                   vars:{ i:i, anzahl:anzahl },
+                   trace:{ zeilen:[i, "true", "— existiert nicht —", "?", anzahl], abbruch:true } });
+          return s;
+        }
+        var frei = e.spendet[i];
+        s.push({ zeile:6, notiz:"Prüfung: <code>spendet[" + i + "]</code> für <b>" + ORGANE[i] + "</b> ist <b>" + frei + "</b>.",
+                 vars:{ i:i, anzahl:anzahl, "ORGANNAMEN[i]": ORGANE[i], "spendet[i]": String(frei) } });
+        if (frei){
+          anzahl++;
+          s.push({ zeile:8, notiz:"Freigegeben — der Zähler wird um 1 erhöht auf <b>" + anzahl + "</b>.",
+                   vars:{ i:i, anzahl:anzahl },
+                   trace:{ zeilen:[i, "true", ORGANE[i], "true", anzahl] } });
+        } else {
+          s[s.length-1].trace = { zeilen:[i, "true", ORGANE[i], "false", anzahl] };
+        }
+      }
+      s.push({ zeile:11, fertig:true,
+               notiz:"Die Schleife ist zu Ende. Die Methode gibt <b>" + anzahl + "</b> zurück.",
+               vars:{ anzahl:anzahl, "Rückgabe": anzahl } });
+      return s;
+    }
+  },
+
+  s22: {
+    tab: "Stunde 22", badge: "Stunde 22",
+    kopfzeile: "Index schieben — belegte Plätze, leere Plätze und der Griff daneben.",
+    codetitel: "Register: Zugriff über den Index",
+    panels: ["feld"],
+    feldTitel: "ausweise (Länge 5)",
+    code: [
+      "Organspendeausweis[] ausweise = new Organspendeausweis[5];",
+      "",
+      "ausweise[0] = new Organspendeausweis(\"A-1001\");",
+      "ausweise[1] = new Organspendeausweis(\"A-1002\");",
+      "ausweise[2] = new Organspendeausweis(\"A-1003\");",
+      "",
+      "System.out.println(ausweise[INDEX].gibNummer());"
+    ],
+    eingaben: [
+      { id:"index", label:"Zugriff auf Index", typ:"range", min:0, max:5, wert:1 }
+    ],
+    lauf: function(e){
+      var s = [], belegt = ["A-1001","A-1002","A-1003",null,null];
+      s.push({ zeile:0, notiz:"<code>new Organspendeausweis[5]</code> legt <b>fünf Plätze</b> an — alle noch <code>null</code>. Es sind noch <b>keine</b> Ausweise entstanden.",
+               feld:{ inhalt:[null,null,null,null,null] } });
+      for (var k = 0; k < 3; k++){
+        var teil = [null,null,null,null,null];
+        for (var j = 0; j <= k; j++){ teil[j] = belegt[j]; }
+        s.push({ zeile:2+k, notiz:"Platz <code>" + k + "</code> bekommt ein echtes Objekt. Erst <code>new</code> erzeugt es — das Feld allein tut das nicht.",
+                 feld:{ inhalt:teil.slice() }, zeiger:k });
+      }
+      var i = e.index;
+      if (i > 4){
+        s.push({ zeile:6, fehler:true,
+                 notiz:"<b>ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 5.</b> Fünf Plätze heißen Index 0 bis 4 — die 5 gibt es nicht. Der klassische Off-by-one.",
+                 feld:{ inhalt:belegt.slice() }, zeiger:i });
+      } else if (belegt[i] === null){
+        s.push({ zeile:6, fehler:true,
+                 notiz:"<b>NullPointerException.</b> Der Platz <code>" + i + "</code> existiert, ist aber leer: Dort steht <code>null</code>, kein Objekt. <code>gibNummer()</code> braucht aber ein Objekt.",
+                 feld:{ inhalt:belegt.slice() }, zeiger:i });
+      } else {
+        s.push({ zeile:6, fertig:true,
+                 notiz:"Ausgabe: <b>" + belegt[i] + "</b>. Der Platz ist belegt, das Objekt antwortet.",
+                 feld:{ inhalt:belegt.slice() }, zeiger:i, treffer:i });
+      }
+      return s;
+    }
+  },
+
+  s23: {
+    tab: "Stunde 23", badge: "Stunde 23",
+    kopfzeile: "Gesuchte Nummer wählen — der Suchlauf und der Vergleichszähler laufen mit.",
+    codetitel: "Register.sucheNachNummer(String pNummer)",
+    panels: ["feld","trace"],
+    feldTitel: "ausweise (6 Einträge)",
+    traceKopf: ["i", "ausweise[i]", "Vergleich", "Treffer?"],
+    code: [
+      "public Organspendeausweis sucheNachNummer(String pNummer)",
+      "{",
+      "    for (int i = 0; i < anzahl; i++)",
+      "    {",
+      "        if (ausweise[i].gibNummer().equals(pNummer))",
+      "        {",
+      "            return ausweise[i];",
+      "        }",
+      "    }",
+      "    return null;",
+      "}"
+    ],
+    eingaben: [
+      { id:"gesucht", label:"Gesuchte Nummer", typ:"select", wert:"A-1004",
+        optionen:[ {w:"A-1001", t:"A-1001  (steht ganz vorn)"},
+                   {w:"A-1004", t:"A-1004  (steht in der Mitte)"},
+                   {w:"A-1006", t:"A-1006  (steht ganz hinten)"},
+                   {w:"A-9999", t:"A-9999  (gar nicht im Register)"} ] }
+    ],
+    lauf: function(e){
+      var daten = ["A-1001","A-1002","A-1003","A-1004","A-1005","A-1006"], s = [], v = 0;
+      s.push({ zeile:0, notiz:"Die Suche beginnt. Gesucht wird <b>" + e.gesucht + "</b>.",
+               feld:{ inhalt:daten.slice() }, vars:{ pNummer:e.gesucht, Vergleiche:0 } });
+      for (var i = 0; i < daten.length; i++){
+        v++;
+        var tr = daten[i] === e.gesucht;
+        s.push({ zeile:4,
+                 notiz:"Vergleich " + v + ": <code>" + daten[i] + "</code> mit <code>" + e.gesucht + "</code> — <b>" + tr + "</b>.",
+                 feld:{ inhalt:daten.slice() }, zeiger:i, treffer: tr ? i : null,
+                 vars:{ i:i, pNummer:e.gesucht, Vergleiche:v },
+                 trace:{ zeilen:[i, daten[i], daten[i] + " = " + e.gesucht + " ?", tr ? "ja" : "nein"] } });
+        if (tr){
+          s.push({ zeile:6, fertig:true,
+                   notiz:"Treffer bei Index " + i + " nach <b>" + v + "</b> Vergleich" + (v===1?"":"en") +
+                         ". <code>return</code> beendet die Suche sofort — der Rest wird gar nicht mehr angesehen.",
+                   feld:{ inhalt:daten.slice() }, zeiger:i, treffer:i,
+                   vars:{ i:i, Vergleiche:v, "Rückgabe":"ausweise[" + i + "]" } });
+          return s;
+        }
+      }
+      s.push({ zeile:9, fertig:true,
+               notiz:"Kein Treffer. Erst nach <b>" + v + "</b> Vergleichen — also nach dem <b>ganzen</b> Register — steht fest, dass die Nummer fehlt. Das ist der ungünstigste Fall der linearen Suche.",
+               feld:{ inhalt:daten.slice() }, vars:{ Vergleiche:v, "Rückgabe":"null" } });
+      return s;
+    }
+  }
+};
+
+/* ============================================================
+   MECHANIK
+   ============================================================ */
+var el = function(id){ return document.getElementById(id); };
+var state = { key:null, eingaben:{}, schritte:[], pos:-1 };
+
+function sz(){ return SZENARIEN[state.key]; }
+
+function zeichneTabs(){
+  var box = el("tabs"); box.innerHTML = "";
+  Object.keys(SZENARIEN).forEach(function(k){
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = SZENARIEN[k].tab;
+    b.setAttribute("aria-pressed", k === state.key ? "true" : "false");
+    b.addEventListener("click", function(){ starte(k); });
+    box.appendChild(b);
+  });
+}
+
+function codeZeilen(){
+  var c = sz().code.slice();
+  if (state.key === "s19"){
+    c = c.map(function(z){ return z.replace("GRENZE", state.eingaben.grenze); });
+  }
+  if (state.key === "s22"){
+    c = c.map(function(z){ return z.replace("INDEX", String(state.eingaben.index)); });
+  }
+  return c;
+}
+
+function zeichneCode(){
+  var pre = el("code"); pre.innerHTML = "";
+  var akt = state.pos >= 0 ? state.schritte[state.pos] : null;
+  codeZeilen().forEach(function(z, i){
+    var d = document.createElement("span");
+    d.className = "z"; d.dataset.nr = String(i + 1);
+    d.textContent = z === "" ? " " : z;
+    if (akt){
+      if (akt.tot && akt.tot.indexOf(i) !== -1) d.classList.add("tot");
+      if (i === akt.zeile) d.classList.add(akt.fehler ? "fehler" : "aktiv");
+    }
+    pre.appendChild(d);
+  });
+}
+
+function zeichneVars(){
+  var akt = state.pos >= 0 ? state.schritte[state.pos] : null;
+  var tb = el("varsBody"); tb.innerHTML = "";
+  var v = (akt && akt.vars) || {};
+  var keys = Object.keys(v);
+  if (!keys.length){
+    var tr0 = document.createElement("tr");
+    var td0 = document.createElement("td");
+    td0.colSpan = 2; td0.style.color = "#888";
+    td0.textContent = "noch nichts belegt";
+    tr0.appendChild(td0); tb.appendChild(tr0); return;
+  }
+  keys.forEach(function(k){
+    var tr = document.createElement("tr");
+    var a = document.createElement("td"); a.textContent = k;
+    var b = document.createElement("td"); b.className = "w"; b.textContent = String(v[k]);
+    tr.appendChild(a); tr.appendChild(b); tb.appendChild(tr);
+  });
+}
+
+function zeichneFeld(){
+  if (sz().panels.indexOf("feld") === -1) return;
+  var akt = state.pos >= 0 ? state.schritte[state.pos] : null;
+  var box = el("feld"); box.innerHTML = "";
+  var inhalt = (akt && akt.feld && akt.feld.inhalt) || [];
+  var zeiger = akt ? akt.zeiger : null;
+  var treffer = akt ? akt.treffer : null;
+  inhalt.forEach(function(w, i){
+    var z = document.createElement("div"); z.className = "zelle";
+    if (zeiger === i) z.classList.add("zeiger");
+    if (treffer === i) z.classList.add("treffer");
+    var idx = document.createElement("span"); idx.className = "idx"; idx.textContent = "[" + i + "]";
+    var val = document.createElement("span"); val.className = "val" + (w === null ? " leer" : "");
+    val.textContent = w === null ? "null" : w;
+    z.appendChild(idx); z.appendChild(val); box.appendChild(z);
+  });
+  if (zeiger !== null && zeiger !== undefined && zeiger >= inhalt.length){
+    var z2 = document.createElement("div");
+    z2.className = "zelle zeiger ausserhalb";
+    z2.innerHTML = '<span class="idx">[' + zeiger + ']</span><span class="val">gibt es nicht</span>';
+    box.appendChild(z2);
+  }
+  el("feldrand").textContent = "Gültige Indizes: 0 bis " + (inhalt.length - 1) +
+    "  ·  Länge: " + inhalt.length;
+}
+
+function zeichneTrace(){
+  if (sz().panels.indexOf("trace") === -1) return;
+  var kopf = el("traceKopf"), body = el("traceBody");
+  kopf.innerHTML = ""; body.innerHTML = "";
+  var trk = document.createElement("tr");
+  (sz().traceKopf || []).forEach(function(h){
+    var th = document.createElement("th"); th.textContent = h; trk.appendChild(th);
+  });
+  kopf.appendChild(trk);
+  var letzterMitTrace = -1;
+  for (var i = 0; i <= state.pos; i++){ if (state.schritte[i].trace) letzterMitTrace = i; }
+  for (var j = 0; j <= state.pos; j++){
+    var t = state.schritte[j].trace;
+    if (!t) continue;
+    var tr = document.createElement("tr");
+    if (t.abbruch) tr.className = "abbruch";
+    else if (j === letzterMitTrace) tr.className = "neu";
+    t.zeilen.forEach(function(c){
+      var td = document.createElement("td"); td.textContent = String(c); tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  }
+}
+
+function zeichneNotiz(){
+  var n = el("notiz");
+  if (state.pos < 0){ n.className = "notiz"; n.innerHTML = "Bereit. Klick auf <b>Schritt →</b>."; return; }
+  var akt = state.schritte[state.pos];
+  n.className = "notiz" + (akt.fehler ? " fehler" : (akt.fertig ? " fertig" : ""));
+  n.innerHTML = akt.notiz;
+}
+
+function zeichne(){
+  zeichneCode(); zeichneVars(); zeichneFeld(); zeichneTrace(); zeichneNotiz();
+  var ende = state.pos >= state.schritte.length - 1;
+  el("btnSchritt").disabled = ende;
+  el("btnAlle").disabled = ende;
+}
+
+function neuBerechnen(){
+  state.schritte = sz().lauf(state.eingaben);
+  state.pos = -1;
+  zeichne();
+}
+
+function zeichneEingaben(){
+  var box = el("eingaben"); box.innerHTML = "";
+  sz().eingaben.forEach(function(cfg){
+    var zeile = document.createElement("div"); zeile.className = "ez";
+    var lab = document.createElement("label"); lab.textContent = cfg.label;
+    lab.htmlFor = "in_" + cfg.id; zeile.appendChild(lab);
+
+    if (cfg.typ === "range"){
+      var r = document.createElement("input");
+      r.type = "range"; r.id = "in_" + cfg.id;
+      r.min = cfg.min; r.max = cfg.max; r.value = state.eingaben[cfg.id];
+      var out = document.createElement("output"); out.textContent = state.eingaben[cfg.id];
+      r.addEventListener("input", function(){
+        state.eingaben[cfg.id] = parseInt(r.value, 10);
+        out.textContent = r.value; neuBerechnen();
+      });
+      zeile.appendChild(r); zeile.appendChild(out);
+
+    } else if (cfg.typ === "select"){
+      var sel = document.createElement("select"); sel.id = "in_" + cfg.id;
+      cfg.optionen.forEach(function(o){
+        var op = document.createElement("option"); op.value = o.w; op.textContent = o.t;
+        if (o.w === state.eingaben[cfg.id]) op.selected = true;
+        sel.appendChild(op);
+      });
+      sel.addEventListener("change", function(){
+        state.eingaben[cfg.id] = sel.value; neuBerechnen();
+      });
+      zeile.appendChild(sel);
+
+    } else if (cfg.typ === "organe"){
+      var g = document.createElement("div"); g.className = "organe";
+      ORGANE.forEach(function(name, i){
+        var l = document.createElement("label");
+        var cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = state.eingaben[cfg.id][i];
+        cb.addEventListener("change", function(){
+          state.eingaben[cfg.id][i] = cb.checked; neuBerechnen();
+        });
+        l.appendChild(cb); l.appendChild(document.createTextNode(name));
+        g.appendChild(l);
+      });
+      zeile.appendChild(g);
+    }
+    box.appendChild(zeile);
+  });
+}
+
+function starte(key){
+  state.key = key;
+  var s = SZENARIEN[key];
+  el("badge").textContent = s.badge;
+  el("kopfzeile").textContent = s.kopfzeile;
+  el("codetitel").textContent = s.codetitel;
+  document.title = "Ablauf-Visualisierer – " + s.codetitel;
+
+  state.eingaben = {};
+  s.eingaben.forEach(function(c){
+    state.eingaben[c.id] = Array.isArray(c.wert) ? c.wert.slice() : c.wert;
+  });
+
+  el("panelFeld").classList.toggle("versteckt", s.panels.indexOf("feld") === -1);
+  el("panelTrace").classList.toggle("versteckt", s.panels.indexOf("trace") === -1);
+  if (s.feldTitel) el("feldTitel").textContent = s.feldTitel;
+
+  zeichneTabs(); zeichneEingaben(); neuBerechnen();
+  if (location.hash.replace("#","") !== key){
+    try { history.replaceState(null, "", "#" + key); } catch(err){}
+  }
+}
+
+el("btnSchritt").addEventListener("click", function(){
+  if (state.pos < state.schritte.length - 1){ state.pos++; zeichne(); }
+});
+el("btnAlle").addEventListener("click", function(){
+  state.pos = state.schritte.length - 1; zeichne();
+});
+el("btnReset").addEventListener("click", function(){ state.pos = -1; zeichne(); });
+
+document.addEventListener("keydown", function(ev){
+  if (ev.target && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  if (ev.key === "ArrowRight"){ el("btnSchritt").click(); }
+  else if (ev.key === "Home"){ el("btnReset").click(); }
+  else if (ev.key === "End"){ el("btnAlle").click(); }
+});
+
+var start = location.hash.replace("#", "");
+starte(SZENARIEN[start] ? start : "s17");
+</script>
+</body>
+</html>
