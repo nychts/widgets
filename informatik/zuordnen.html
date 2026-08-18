@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zuordnungs-Trainer – Paare finden (Reihe OOP Java)</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --reihe:#b35c00; --reihehell:#fdf6ee;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+    --code:"Consolas","DejaVu Sans Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:22px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.5;}
+  .wrap{max-width:1000px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:16px 20px;
+    display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;}
+  header.top h1{font-size:19px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:13.5px; opacity:.92;}
+  .badge{background:#fff; color:var(--haupt); font-weight:700; border-radius:6px;
+    padding:5px 11px; font-size:13px; white-space:nowrap;}
+
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 0;}
+  .tabs button{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:13.5px;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt);}
+  .tabs button[aria-pressed=true]{background:var(--haupt); color:#fff;
+    border-color:var(--haupt); font-weight:700;}
+  button:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+
+  .vorgehen{background:var(--reihehell); border-left:4px solid var(--reihe);
+    border-radius:0 6px 6px 0; padding:11px 15px; margin:16px 0; font-size:13.5px;}
+  .vorgehen b{color:var(--reihe);}
+
+  .fortschritt{display:flex; align-items:center; gap:12px; margin:16px 0 10px;
+    font-size:13px; color:var(--textgrau);}
+  .balken{flex:1; height:8px; background:var(--grau); border-radius:4px; overflow:hidden;}
+  .balken i{display:block; height:100%; background:var(--akzent); width:0; transition:width .25s;}
+
+  .spalten{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .spalte h2{font-size:13px; color:var(--haupt); margin:0 0 8px; letter-spacing:.02em;
+    text-transform:uppercase;}
+  .liste{display:flex; flex-direction:column; gap:7px;}
+  .item{text-align:left; width:100%; padding:10px 12px; border-radius:7px; cursor:pointer;
+    border:1.5px solid var(--grau); background:#fff; color:var(--text);
+    font-family:var(--code); font-size:13px; line-height:1.4;}
+  .item.satz{font-family:"Segoe UI",sans-serif; font-size:13.5px;}
+  .item:hover:not(:disabled){border-color:var(--akzent); background:var(--hell);}
+  .item[aria-pressed=true]{border-color:var(--orange); border-width:2.5px;
+    background:#fdf1e5; font-weight:700;}
+  .item.fertig{border-color:var(--gruen); background:var(--gruenhell); cursor:default;
+    opacity:.85;}
+  .item.fertig::after{content:" ✓"; color:var(--gruen); font-weight:700;}
+  .item.wackelt{border-color:var(--rot); background:var(--rothell); animation:w .3s;}
+  .item.entlarvt{border-color:var(--rot); background:var(--rothell); cursor:default;}
+  .item.entlarvt::after{content:" ✗ passt zu nichts"; color:var(--rot); font-size:11.5px;}
+  @keyframes w{ 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);} }
+
+  .rueck{margin-top:14px; border-radius:7px; padding:13px 16px; font-size:14px;
+    min-height:66px; border-left:5px solid var(--grau); background:#fff;}
+  .rueck.ok{background:var(--gruenhell); border-left-color:var(--gruen);}
+  .rueck.falsch{background:var(--rothell); border-left-color:var(--rot);}
+  .rueck b.ok{color:var(--gruen);} .rueck b.falsch{color:var(--rot);}
+  .rueck code{font-family:var(--code); font-size:12.5px;}
+
+  .steuer{display:flex; flex-wrap:wrap; gap:9px; margin-top:14px;}
+  .steuer button{padding:9px 16px; border-radius:6px; font-size:13.5px; cursor:pointer;
+    border:1px solid var(--haupt); background:#fff; color:var(--haupt); font-weight:600;}
+
+  footer{margin-top:22px; font-size:12px; color:var(--textgrau); text-align:center;}
+  @media (max-width:760px){ .spalten{grid-template-columns:1fr;} body{padding:14px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Zuordnungs-Trainer</h1>
+      <p id="kopfzeile">Links etwas anklicken, dann rechts den Partner — die Begründung kommt sofort.</p>
+    </div>
+    <span class="badge" id="badge">Stunde 8</span>
+  </header>
+
+  <div class="tabs" role="group" aria-label="Kartensatz wählen" id="tabs"></div>
+
+  <div class="vorgehen">
+    <b>So geht's:</b> Wähle links einen Eintrag, dann rechts den passenden Partner.
+    Stimmt das Paar, rastet es grün ein. Stimmt es nicht, erfährst du warum.
+    <b>Achtung:</b> Rechts kann es Einträge geben, die zu <b>gar keinem</b> Partner passen —
+    die bleiben am Ende übrig.
+  </div>
+
+  <div class="fortschritt">
+    <span id="zaehler">0 von 0 Paaren</span>
+    <span class="balken"><i id="balken"></i></span>
+    <span id="versuche">0 Versuche</span>
+  </div>
+
+  <div class="spalten">
+    <div class="spalte">
+      <h2 id="titelLinks">Links</h2>
+      <div class="liste" id="listeA" role="group" aria-label="Linke Spalte"></div>
+    </div>
+    <div class="spalte">
+      <h2 id="titelRechts">Rechts</h2>
+      <div class="liste" id="listeB" role="group" aria-label="Rechte Spalte"></div>
+    </div>
+  </div>
+
+  <div class="rueck" id="rueckmeldung" role="status" aria-live="polite">
+    Wähle links einen Eintrag.
+  </div>
+
+  <div class="steuer">
+    <button type="button" id="btnNeu">Neu mischen</button>
+  </div>
+
+  <footer>Interaktives Material zur Reihe „Objektorientierte Modellierung und
+    Programmierung in Java“ · Informatik EF</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   DATEN — je Stunde ein Satz aus Paaren und (optional) Störern,
+   die zu gar keinem linken Eintrag passen.
+   ============================================================ */
+var SAETZE = {
+  s08: {
+    tab:"Stunde 8", badge:"Stunde 8",
+    kopfzeile:"Welcher Datentyp gehört zu welchem Wert?",
+    titelLinks:"Wert im Quelltext", titelRechts:"Datentyp",
+    stil:"code",
+    paare:[
+      { a:'53113', b:'int',
+        grund:"Ganze Zahl ohne Nachkommastellen. <code>int</code> reicht von etwa −2 bis +2 Milliarden — die Postleitzahl passt bequem hinein." },
+      { a:'9007199254740993', b:'long',
+        grund:"Diese Zahl ist größer als gut 2 Milliarden und passt <b>nicht</b> mehr in <code>int</code>. Der Compiler verlangt dafür <code>long</code> (und ein <code>L</code> am Ende der Zahl)." },
+      { a:'"Bonn"', b:'String',
+        grund:"Zeichenkette in <b>doppelten</b> Anführungszeichen. Auch <code>nachname</code>, <code>wohnort</code> und <code>ausweisnummer</code> sind <code>String</code>." },
+      { a:'true', b:'boolean',
+        grund:"Nur zwei Werte sind möglich: <code>true</code> oder <code>false</code>. Jedes der fünf <code>spendet*</code>-Attribute der <code>Erklaerung</code> ist ein <code>boolean</code>." },
+      { a:"'A'", b:'char',
+        grund:"Genau <b>ein</b> Zeichen in <b>einfachen</b> Anführungszeichen. Verwechslungsgefahr: <code>\"A\"</code> mit doppelten Anführungszeichen wäre ein <code>String</code>." },
+      { a:'1.75', b:'double',
+        grund:"Eine Kommazahl — in Java mit Punkt statt Komma geschrieben. Im Registermodell kommt sie nicht vor, gehört aber zu den elementaren Datentypen." },
+      { a:'new Datum(24, 12, 2026)', b:'Datum',
+        grund:"Ein <b>Objekttyp</b> aus dem eigenen Modell, kein elementarer Datentyp. Erkennbar am großgeschriebenen Klassennamen und am <code>new</code>." }
+    ],
+    stoerer:[
+      { b:'int[]',
+        grund:"Ein <b>Feld</b> von Ganzzahlen — also viele Werte unter einem Namen, nicht ein einzelner. Felder kommen erst in Stunde 22 dazu." }
+    ]
+  },
+
+  s16: {
+    tab:"Stunde 16", badge:"Stunde 16",
+    kopfzeile:"Welcher Aufruf passt zu welcher Signatur — und welcher passt zu keiner?",
+    titelLinks:"Signatur der Methode", titelRechts:"Aufruf im Hauptprogramm",
+    stil:"code",
+    paare:[
+      { a:'public String formatiert(String pTrenner)', b:'datum.formatiert(".")',
+        grund:"Ein Parameter vom Typ <code>String</code> wird verlangt, genau einer wird übergeben. Der Rückgabewert ist ein <code>String</code> und kann weiterverwendet werden." },
+      { a:'public boolean istVolljaehrig()', b:'person.istVolljaehrig()',
+        grund:"Leere Parameterliste in der Signatur, leere Klammern beim Aufruf. Die Methode holt sich alles, was sie braucht, aus dem eigenen Objekt." },
+      { a:'public void setzePlz(int pPlz)', b:'anschrift.setzePlz(53113)',
+        grund:"Ein <code>int</code> wird verlangt, ein <code>int</code> wird übergeben. Da die Methode <code>void</code> ist, steht der Aufruf allein in einer Zeile." },
+      { a:'public int berechneAlter()', b:'int alter = datum.berechneAlter();',
+        grund:"Der Rückgabetyp <code>int</code> passt zur Variablen, in der das Ergebnis aufgefangen wird. Genau dafür gibt es Rückgabewerte." },
+      { a:'public Person(String pVorname, String pNachname)', b:'new Person("Mika", "Keller")',
+        grund:"Ein Konstruktor wird mit <code>new</code> aufgerufen. Zwei <code>String</code>-Parameter verlangt, zwei übergeben — Anzahl und Typen stimmen." }
+    ],
+    stoerer:[
+      { b:'datum.formatiert()',
+        grund:"Der <b>Parameter fehlt</b>. Die Signatur verlangt genau einen <code>String</code>; ohne ihn findet der Compiler keine passende Methode." },
+      { b:'person.istVolljaehrig(18)',
+        grund:"Hier wird ein Wert <b>übergeben, den niemand entgegennimmt</b> — die Signatur hat eine leere Parameterliste." },
+      { b:'int p = anschrift.setzePlz(53113);',
+        grund:"<code>setzePlz</code> ist <code>void</code> und gibt <b>nichts</b> zurück. Ein Auftrag lässt sich nicht in einer Variablen auffangen." }
+    ]
+  },
+
+  s21: {
+    tab:"Stunde 21", badge:"Stunde 21",
+    kopfzeile:"Welchen Fall deckt dieser Testfall ab?",
+    titelLinks:"Konkreter Testfall", titelRechts:"Abgedeckter Fall",
+    stil:"satz",
+    paare:[
+      { a:'Person mit Geburtsjahr 2008 — also genau 18 Jahre alt', b:'die Grenze selbst',
+        grund:"Der wichtigste Testfall überhaupt. Genau hier entscheidet sich, ob <code>&gt;=</code> oder <code>&gt;</code> im Code steht — ein Fehler, den kein anderer Testfall aufdeckt." },
+      { a:'Person mit Geburtsjahr 2009 — 17 Jahre alt', b:'knapp unterhalb der Grenze',
+        grund:"Der erste Wert, der noch <code>false</code> liefern muss. Zusammen mit der Grenze selbst schließt er die häufigste Fehlerquelle aus." },
+      { a:'Person mit Geburtsjahr 2007 — 19 Jahre alt', b:'knapp oberhalb der Grenze',
+        grund:"Der erste Wert, der sicher <code>true</code> liefern muss. Drei Werte um die Grenze herum genügen für eine Bedingung dieser Art." },
+      { a:'Suche nach einer Ausweisnummer, die es im Register nicht gibt', b:'kein Treffer',
+        grund:"Prüft, ob die Methode nach dem vollständigen Durchlauf sauber <code>null</code> liefert — und nicht etwa abstürzt oder irgendetwas zurückgibt." },
+      { a:'Suche in einem Register, in das noch niemand eingetragen wurde', b:'leere Datenstruktur',
+        grund:"Der Fall, den man beim Testen am leichtesten vergisst. Die Schleife läuft kein einziges Mal — funktioniert die Methode trotzdem?" },
+      { a:'Suche nach der Nummer, die ganz hinten im Register steht', b:'letztes Element',
+        grund:"Deckt den Off-by-one an der oberen Grenze auf: Läuft die Schleife wirklich bis zum letzten Index, oder hört sie einen zu früh auf?" }
+    ],
+    stoerer:[
+      { b:'ein bequemer Wert mitten im Bereich',
+        grund:"Genau der Testfall, der <b>nichts Neues</b> prüft. Eine 25-jährige Person zeigt nur, was die drei Werte um die Grenze herum ohnehin schon zeigen — der Stolperstein dieser Stunde." }
+    ]
+  }
+};
+
+/* ============================================================
+   MECHANIK
+   ============================================================ */
+var el = function(id){ return document.getElementById(id); };
+var state = { key:null, gewaehltA:null, gefunden:[], versuche:0, ordnungA:[], ordnungB:[] };
+
+function mischen(arr){
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function satz(){ return SAETZE[state.key]; }
+function alleB(){
+  var s = satz(), out = [];
+  s.paare.forEach(function(p, i){ out.push({ text:p.b, paar:i, grund:p.grund }); });
+  (s.stoerer || []).forEach(function(st){ out.push({ text:st.b, paar:null, grund:st.grund }); });
+  return out;
+}
+
+function zeichneTabs(){
+  var box = el("tabs"); box.innerHTML = "";
+  Object.keys(SAETZE).forEach(function(k){
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = SAETZE[k].tab;
+    b.setAttribute("aria-pressed", k === state.key ? "true" : "false");
+    b.addEventListener("click", function(){ starte(k); });
+    box.appendChild(b);
+  });
+}
+
+function fertigA(i){ return state.gefunden.indexOf(i) !== -1; }
+
+function zeichneListen(){
+  var s = satz(), stil = s.stil === "satz" ? " satz" : "";
+  var la = el("listeA"); la.innerHTML = "";
+  state.ordnungA.forEach(function(i){
+    var p = s.paare[i];
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "item" + stil;
+    b.textContent = p.a;
+    if (fertigA(i)){ b.classList.add("fertig"); b.disabled = true; }
+    b.setAttribute("aria-pressed", state.gewaehltA === i ? "true" : "false");
+    b.addEventListener("click", function(){ waehleA(i); });
+    la.appendChild(b);
+  });
+
+  var lb = el("listeB"); lb.innerHTML = "";
+  var bs = alleB();
+  state.ordnungB.forEach(function(j){
+    var e = bs[j];
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "item" + stil;
+    b.textContent = e.text;
+    b.dataset.j = String(j);
+    if (e.paar !== null && fertigA(e.paar)){ b.classList.add("fertig"); b.disabled = true; }
+    b.addEventListener("click", function(){ waehleB(j); });
+    lb.appendChild(b);
+  });
+
+  var n = s.paare.length;
+  el("zaehler").textContent = state.gefunden.length + " von " + n + " Paaren";
+  el("balken").style.width = Math.round(state.gefunden.length / n * 100) + "%";
+  el("versuche").textContent = state.versuche + (state.versuche === 1 ? " Versuch" : " Versuche");
+}
+
+function wackel(j){
+  var kn = el("listeB").querySelectorAll("button");
+  for (var i = 0; i < kn.length; i++){
+    if (kn[i].dataset.j === String(j)){
+      kn[i].classList.add("wackelt");
+      (function(k){ setTimeout(function(){ k.classList.remove("wackelt"); }, 320); })(kn[i]);
+    }
+  }
+}
+
+function waehleA(i){
+  if (fertigA(i)) return;
+  state.gewaehltA = (state.gewaehltA === i) ? null : i;
+  var r = el("rueckmeldung"); r.className = "rueck";
+  r.innerHTML = state.gewaehltA === null
+    ? "Wähle links einen Eintrag."
+    : "Ausgewählt: <code>" + satz().paare[i].a + "</code> — jetzt rechts den Partner.";
+  zeichneListen();
+}
+
+function waehleB(j){
+  var bs = alleB(), e = bs[j];
+  if (e.paar !== null && fertigA(e.paar)) return;
+  var r = el("rueckmeldung");
+
+  if (state.gewaehltA === null){
+    r.className = "rueck";
+    r.innerHTML = "Wähle <b>zuerst links</b> einen Eintrag aus.";
+    return;
+  }
+  state.versuche++;
+
+  if (e.paar === state.gewaehltA){
+    state.gefunden.push(state.gewaehltA);
+    r.className = "rueck ok";
+    r.innerHTML = '<b class="ok">Passt.</b> ' + satz().paare[state.gewaehltA].grund;
+    state.gewaehltA = null;
+    zeichneListen();
+    if (state.gefunden.length === satz().paare.length) abschluss();
+    return;
+  }
+
+  r.className = "rueck falsch";
+  if (e.paar === null){
+    r.innerHTML = '<b class="falsch">Der passt zu gar nichts.</b> ' + e.grund;
+  } else {
+    r.innerHTML = '<b class="falsch">Nicht dieses Paar.</b> Der rechte Eintrag gehört zu etwas anderem. ' +
+      "Tipp: Vergleiche genau, was die linke Seite <i>verlangt</i>, mit dem, was die rechte <i>anbietet</i>.";
+  }
+  wackel(j);
+  zeichneListen();
+}
+
+function abschluss(){
+  var s = satz(), st = s.stoerer || [];
+  var kn = el("listeB").querySelectorAll("button");
+  for (var i = 0; i < kn.length; i++){
+    if (!kn[i].classList.contains("fertig")){
+      kn[i].classList.add("entlarvt"); kn[i].disabled = true;
+    }
+  }
+  var r = el("rueckmeldung");
+  r.className = "rueck ok";
+  var txt = "<b class=\"ok\">Alle " + s.paare.length + " Paare gefunden</b> — mit " +
+    state.versuche + " Versuch" + (state.versuche === 1 ? "" : "en") + ".";
+  if (st.length){
+    txt += "<br><br>Übrig geblieben " + (st.length === 1 ? "ist" : "sind") + ":<ul style='margin:6px 0 0 18px'>";
+    st.forEach(function(x){ txt += "<li><code>" + x.b + "</code> — " + x.grund + "</li>"; });
+    txt += "</ul>";
+  }
+  r.innerHTML = txt;
+}
+
+function starte(key){
+  state.key = key;
+  var s = satz();
+  el("badge").textContent = s.badge;
+  el("kopfzeile").textContent = s.kopfzeile;
+  el("titelLinks").textContent = s.titelLinks;
+  el("titelRechts").textContent = s.titelRechts;
+  document.title = "Zuordnungs-Trainer – " + s.tab;
+
+  var ia = [], ib = [];
+  for (var i = 0; i < s.paare.length; i++){ ia.push(i); }
+  for (var j = 0; j < s.paare.length + (s.stoerer ? s.stoerer.length : 0); j++){ ib.push(j); }
+  state.ordnungA = mischen(ia);
+  state.ordnungB = mischen(ib);
+  state.gewaehltA = null; state.gefunden = []; state.versuche = 0;
+
+  el("rueckmeldung").className = "rueck";
+  el("rueckmeldung").textContent = "Wähle links einen Eintrag.";
+  zeichneTabs(); zeichneListen();
+  if (location.hash.replace("#","") !== key){
+    try { history.replaceState(null, "", "#" + key); } catch(err){}
+  }
+}
+
+el("btnNeu").addEventListener("click", function(){ starte(state.key); });
+
+var start = location.hash.replace("#", "");
+starte(SAETZE[start] ? start : "s08");
+</script>
+</body>
+</html>
