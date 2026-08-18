@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konsistenz-Vergleich – parallele Felder gegen eine Klasse (Stunde 24)</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --reihe:#b35c00; --reihehell:#fdf6ee;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3; --gelb:#fff3c4;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+    --code:"Consolas","DejaVu Sans Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:22px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.5;}
+  .wrap{max-width:1150px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:16px 20px;
+    display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;}
+  header.top h1{font-size:19px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:13.5px; opacity:.92;}
+  .badge{background:#fff; color:var(--haupt); font-weight:700; border-radius:6px;
+    padding:5px 11px; font-size:13px; white-space:nowrap;}
+  button:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+
+  .vorgehen{background:var(--reihehell); border-left:4px solid var(--reihe);
+    border-radius:0 6px 6px 0; padding:11px 15px; margin:16px 0; font-size:13.5px;}
+  .vorgehen b{color:var(--reihe);}
+
+  .aktionen{display:flex; flex-wrap:wrap; gap:9px; align-items:center; margin:16px 0 6px;
+    font-size:13.5px;}
+  .aktionen button{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:13.5px;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt);}
+  .aktionen button[aria-pressed=true]{background:var(--haupt); color:#fff;
+    border-color:var(--haupt); font-weight:700;}
+
+  .seiten{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px;}
+  .seite{border:1px solid var(--grau); border-radius:8px; background:#fff; padding:14px 16px;}
+  .seite.links{border-top:4px solid var(--rot);}
+  .seite.rechts{border-top:4px solid var(--gruen);}
+  .seite h2{font-size:14px; margin:0 0 3px; color:var(--haupt);}
+  .seite .unter{font-size:12px; color:var(--textgrau); margin:0 0 11px;
+    font-family:var(--code);}
+
+  table.d{width:100%; border-collapse:collapse; font-size:12.5px; font-family:var(--code);}
+  table.d th, table.d td{border:1px solid var(--grau); padding:5px 7px; text-align:left;}
+  table.d th{background:var(--hell); color:var(--haupt); font-family:"Segoe UI",sans-serif;
+    font-size:11.5px;}
+  table.d td.idx{background:#f6f8fb; color:var(--textgrau); text-align:center; width:34px;}
+  table.d tr.kaputt td{background:var(--rothell); color:var(--rot); font-weight:700;}
+  table.d tr.weg td{opacity:.4; text-decoration:line-through;}
+  table.d td.fehlt{color:#aab; font-style:italic; font-weight:400;}
+
+  .schritte{display:flex; flex-direction:column; gap:6px; margin-top:11px;}
+  .schritte button{padding:8px 11px; border-radius:6px; cursor:pointer; font-size:12.5px;
+    border:1px solid var(--haupt); background:var(--haupt); color:#fff; text-align:left;
+    font-family:var(--code);}
+  .schritte button.sek{background:#fff; color:var(--haupt);}
+  .schritte button:disabled{opacity:.4; cursor:default;}
+
+  .status{margin-top:11px; border-radius:6px; padding:9px 12px; font-size:12.5px;
+    border-left:4px solid var(--grau); background:#fafbfc;}
+  .status.ok{background:var(--gruenhell); border-left-color:var(--gruen); color:#1d5c2c;}
+  .status.kaputt{background:var(--rothell); border-left-color:var(--rot); color:var(--rot);}
+  .status b{display:block; margin-bottom:2px;}
+
+  .bilanz{margin-top:16px; border:1px solid var(--grau); border-radius:8px; padding:14px 18px;
+    background:#fff;}
+  .bilanz h2{font-size:14px; color:var(--haupt); margin:0 0 9px;}
+  table.b{width:100%; border-collapse:collapse; font-size:13px;}
+  table.b th, table.b td{border:1px solid var(--grau); padding:6px 9px; text-align:left;}
+  table.b th{background:var(--hell); color:var(--haupt);}
+  table.b td.zahl{font-family:var(--code); text-align:center; font-weight:700;}
+  .fazit{margin-top:11px; border-left:5px solid var(--akzent); background:var(--hell);
+    border-radius:0 6px 6px 0; padding:11px 14px; font-size:13.5px;}
+  .fazit code{font-family:var(--code); font-size:12.5px;}
+
+  .steuer{display:flex; gap:9px; margin-top:14px;}
+  .steuer button{padding:9px 16px; border-radius:6px; font-size:13.5px; cursor:pointer;
+    border:1px solid var(--haupt); background:#fff; color:var(--haupt); font-weight:600;}
+
+  footer{margin-top:22px; font-size:12px; color:var(--textgrau); text-align:center;}
+  @media (max-width:860px){ .seiten{grid-template-columns:1fr;} body{padding:14px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Konsistenz-Vergleich</h1>
+      <p>Dieselbe Änderung — links auf drei parallelen Feldern, rechts auf einer Klasse.</p>
+    </div>
+    <span class="badge">Stunde 24</span>
+  </header>
+
+  <div class="vorgehen">
+    <b>So geht's:</b> Wähle oben eine Änderung. Führe sie dann auf <b>beiden</b> Seiten aus.
+    Rechts genügt ein Klick. Links musst du <b>jedes Feld einzeln</b> anfassen — und nach dem
+    ersten Klick stimmen die Daten nicht mehr. Achte darauf, <b>was das Register in diesem
+    Moment behauptet</b>.
+  </div>
+
+  <div class="aktionen" id="aktionen" role="group" aria-label="Änderung wählen"></div>
+
+  <div class="seiten">
+    <div class="seite links">
+      <h2>Drei parallele Felder</h2>
+      <p class="unter">String[] namen · String[] nummern · int[] jahre</p>
+      <table class="d">
+        <thead><tr><th></th><th>namen[i]</th><th>nummern[i]</th><th>jahre[i]</th></tr></thead>
+        <tbody id="tabLinks"></tbody>
+      </table>
+      <div class="schritte" id="schritteLinks"></div>
+      <div class="status" id="statusLinks" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="seite rechts">
+      <h2>Ein Feld von Objekten</h2>
+      <p class="unter">Organspendeausweis[] ausweise</p>
+      <table class="d">
+        <thead><tr><th></th><th>ausweise[i]</th></tr></thead>
+        <tbody id="tabRechts"></tbody>
+      </table>
+      <div class="schritte" id="schritteRechts"></div>
+      <div class="status" id="statusRechts" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="bilanz">
+    <h2>Bilanz dieser Änderung</h2>
+    <table class="b">
+      <thead><tr><th></th><th>Parallele Felder</th><th>Klasse und Feld</th></tr></thead>
+      <tbody>
+        <tr><td>Nötige Änderungsschritte</td>
+            <td class="zahl" id="bSchritteL">0</td><td class="zahl" id="bSchritteR">0</td></tr>
+        <tr><td>Zwischenzustände mit falschen Daten</td>
+            <td class="zahl" id="bKaputtL">0</td><td class="zahl" id="bKaputtR">0</td></tr>
+        <tr><td>Was bei einem vergessenen Schritt passiert</td>
+            <td id="bRiskL">—</td><td id="bRiskR">—</td></tr>
+      </tbody>
+    </table>
+    <div class="fazit" id="fazit">Führe die Änderung auf beiden Seiten aus, dann steht hier die Auswertung.</div>
+  </div>
+
+  <div class="steuer">
+    <button type="button" id="btnReset">Von vorn</button>
+  </div>
+
+  <footer>Interaktives Material zur Reihe „Objektorientierte Modellierung und
+    Programmierung in Java“ · Informatik EF</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   DATEN
+   Jede Seite haelt nur IDs. Dadurch laesst sich exakt pruefen,
+   ob Zeile i auf allen drei Feldern noch dieselbe Person meint.
+   ============================================================ */
+var PERSONEN = [
+  { name:"Mika Keller",  nummer:"A-1001", jahr:2008 },
+  { name:"Nina Braun",   nummer:"A-1002", jahr:1997 },
+  { name:"Jonas Weiss",  nummer:"A-1003", jahr:2004 },
+  { name:"Alina Fux",    nummer:"A-1004", jahr:1985 }
+];
+
+var AKTIONEN = {
+  loeschen: {
+    label: "Datensatz 1 löschen",
+    beschreibung: "Nina Braun zieht ihre Erklärung zurück und wird aus dem Register entfernt.",
+    ziel: 1,
+    schritteLinks: [
+      { feld:"namen",   text:"namen[] : Eintrag 1 entfernen" },
+      { feld:"nummern", text:"nummern[] : Eintrag 1 entfernen" },
+      { feld:"jahre",   text:"jahre[] : Eintrag 1 entfernen" }
+    ],
+    schrittRechts: "ausweise[] : Eintrag 1 entfernen",
+    risikoL: "Ein Feld bleibt zu lang — Name und Ausweisnummer gehören ab da zu verschiedenen Personen.",
+    risikoR: "Kann nicht passieren: Es gibt nur einen Schritt."
+  },
+  tauschen: {
+    label: "Datensatz 0 und 3 tauschen",
+    beschreibung: "Das Register soll nach Ausweisnummer sortiert werden — dazu müssen zwei Einträge die Plätze tauschen.",
+    ziel: null, tausch: [0, 3],
+    schritteLinks: [
+      { feld:"namen",   text:"namen[] : 0 und 3 tauschen" },
+      { feld:"nummern", text:"nummern[] : 0 und 3 tauschen" },
+      { feld:"jahre",   text:"jahre[] : 0 und 3 tauschen" }
+    ],
+    schrittRechts: "ausweise[] : 0 und 3 tauschen",
+    risikoL: "Sortieren heißt: jede Vertauschung muss auf allen drei Feldern identisch nachvollzogen werden.",
+    risikoR: "Ein Tausch bewegt das ganze Objekt — die Angaben bleiben zusammen."
+  }
+};
+
+/* ============================================================
+   MECHANIK
+   ============================================================ */
+var el = function(id){ return document.getElementById(id); };
+var state = null;
+
+function frisch(aktion){
+  return {
+    aktion: aktion,
+    links:  { namen:[0,1,2,3], nummern:[0,1,2,3], jahre:[0,1,2,3] },
+    rechts: [0,1,2,3],
+    getanL: {}, getanR: false,
+    schritteL: 0, schritteR: 0,
+    kaputtL: 0, kaputtR: 0,
+    gesehen: false
+  };
+}
+
+function akt(){ return AKTIONEN[state.aktion]; }
+
+// Prüft, ob Zeile i auf allen drei Feldern dieselbe Person meint.
+function pruefeLinks(){
+  var l = state.links;
+  var maxLen = Math.max(l.namen.length, l.nummern.length, l.jahre.length);
+  var kaputteZeilen = [];
+  for (var i = 0; i < maxLen; i++){
+    var a = l.namen[i], b = l.nummern[i], c = l.jahre[i];
+    if (a === undefined || b === undefined || c === undefined || a !== b || b !== c){
+      kaputteZeilen.push(i);
+    }
+  }
+  return kaputteZeilen;
+}
+
+function zeichneLinks(){
+  var l = state.links, tb = el("tabLinks"); tb.innerHTML = "";
+  var kaputt = pruefeLinks();
+  var maxLen = Math.max(l.namen.length, l.nummern.length, l.jahre.length);
+  for (var i = 0; i < maxLen; i++){
+    var tr = document.createElement("tr");
+    if (kaputt.indexOf(i) !== -1) tr.className = "kaputt";
+    var ti = document.createElement("td"); ti.className = "idx"; ti.textContent = i;
+    tr.appendChild(ti);
+    [["namen","name"], ["nummern","nummer"], ["jahre","jahr"]].forEach(function(p){
+      var id = l[p[0]][i];
+      var td = document.createElement("td");
+      if (id === undefined){ td.className = "fehlt"; td.textContent = "—"; }
+      else td.textContent = PERSONEN[id][p[1]];
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  }
+
+  var st = el("statusLinks");
+  if (kaputt.length === 0){
+    st.className = "status ok";
+    st.innerHTML = "<b>Konsistent.</b> In jeder Zeile gehören Name, Nummer und Jahrgang zusammen.";
+  } else {
+    st.className = "status kaputt";
+    var i0 = kaputt[0];
+    var n = l.namen[i0] !== undefined ? PERSONEN[l.namen[i0]].name : "—";
+    var num = l.nummern[i0] !== undefined ? PERSONEN[l.nummern[i0]].nummer : "—";
+    var jr = l.jahre[i0] !== undefined ? PERSONEN[l.jahre[i0]].jahr : "—";
+    st.innerHTML = "<b>Die Daten sind falsch — in " + kaputt.length + " Zeile" +
+      (kaputt.length === 1 ? "" : "n") + ".</b>" +
+      "Das Register behauptet gerade: Index " + i0 + " ist <b>" + n + "</b> mit der Nummer <b>" +
+      num + "</b>, geboren <b>" + jr + "</b>. Das ist so nie eingetragen worden.";
+  }
+}
+
+function zeichneRechts(){
+  var tb = el("tabRechts"); tb.innerHTML = "";
+  state.rechts.forEach(function(id, i){
+    var tr = document.createElement("tr");
+    var ti = document.createElement("td"); ti.className = "idx"; ti.textContent = i;
+    var td = document.createElement("td");
+    var p = PERSONEN[id];
+    td.textContent = p.nummer + " · " + p.name + " · " + p.jahr;
+    tr.appendChild(ti); tr.appendChild(td); tb.appendChild(tr);
+  });
+  var st = el("statusRechts");
+  st.className = "status ok";
+  st.innerHTML = "<b>Konsistent.</b> Jedes Objekt trägt seine Angaben selbst — sie können gar nicht auseinanderlaufen.";
+}
+
+function zeichneSchritte(){
+  var a = akt();
+  var bl = el("schritteLinks"); bl.innerHTML = "";
+  a.schritteLinks.forEach(function(s, k){
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = s.text;
+    b.disabled = !!state.getanL[s.feld];
+    b.addEventListener("click", function(){ schrittLinks(s.feld); });
+    bl.appendChild(b);
+  });
+  var br = el("schritteRechts"); br.innerHTML = "";
+  var b2 = document.createElement("button");
+  b2.type = "button"; b2.className = "sek"; b2.textContent = a.schrittRechts;
+  b2.disabled = state.getanR;
+  b2.addEventListener("click", schrittRechts);
+  br.appendChild(b2);
+}
+
+function wendeAn(liste){
+  var a = akt();
+  if (a.ziel !== null && a.ziel !== undefined){
+    var out = liste.slice(); out.splice(a.ziel, 1); return out;
+  }
+  var o = liste.slice(), i = a.tausch[0], j = a.tausch[1];
+  var t = o[i]; o[i] = o[j]; o[j] = t; return o;
+}
+
+function schrittLinks(feld){
+  if (state.getanL[feld]) return;
+  state.links[feld] = wendeAn(state.links[feld]);
+  state.getanL[feld] = true;
+  state.schritteL++;
+  if (pruefeLinks().length > 0) state.kaputtL++;
+  zeichne();
+}
+
+function schrittRechts(){
+  if (state.getanR) return;
+  state.rechts = wendeAn(state.rechts);
+  state.getanR = true;
+  state.schritteR++;
+  zeichne();
+}
+
+function zeichneBilanz(){
+  var a = akt();
+  el("bSchritteL").textContent = state.schritteL + " / " + a.schritteLinks.length;
+  el("bSchritteR").textContent = state.schritteR + " / 1";
+  el("bKaputtL").textContent = state.kaputtL;
+  el("bKaputtR").textContent = state.kaputtR;
+  el("bRiskL").textContent = a.risikoL;
+  el("bRiskR").textContent = a.risikoR;
+
+  var fertigL = state.schritteL === a.schritteLinks.length;
+  var f = el("fazit");
+  if (fertigL && state.getanR){
+    f.innerHTML = "<b>Beide Seiten sind fertig — mit demselben Ergebnis.</b> Links waren dafür " +
+      a.schritteLinks.length + " Schritte nötig, rechts einer. Unterwegs war das Register links in " +
+      state.kaputtL + " Zwischenzustand" + (state.kaputtL === 1 ? "" : "änden") +
+      " nachweislich falsch, rechts in keinem.<br><br>" +
+      "Genau das ist der Grund für eine eigene Klasse: Nicht die <i>Menge</i> an Tipparbeit ist das " +
+      "Problem, sondern dass zwischen dem ersten und dem letzten Schritt ein Zustand existiert, in dem " +
+      "die Daten <b>falsch, aber nicht kaputt</b> sind — das Programm läuft weiter und rechnet mit " +
+      "Angaben, die so nie eingetragen wurden. Ein <code>Organspendeausweis</code>-Objekt hält seine " +
+      "Angaben zusammen; es gibt keinen Moment, in dem sie auseinanderfallen könnten.";
+  } else if (state.schritteL > 0 && !fertigL){
+    f.innerHTML = "<b>Links ist die Änderung noch nicht zu Ende.</b> Sieh dir die rot markierten Zeilen an — " +
+      "so sähe das Register gerade aus, wenn jemand hier aufhört (oder ein Feld schlicht vergisst). " +
+      "Der Compiler meldet dabei <b>nichts</b>: Drei Felder unterschiedlicher Länge sind völlig legal.";
+  } else {
+    f.innerHTML = "Führe die Änderung auf beiden Seiten aus, dann steht hier die Auswertung.";
+  }
+}
+
+function zeichneAktionen(){
+  var box = el("aktionen"); box.innerHTML = "";
+  Object.keys(AKTIONEN).forEach(function(k){
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = AKTIONEN[k].label;
+    b.setAttribute("aria-pressed", k === state.aktion ? "true" : "false");
+    b.addEventListener("click", function(){ state = frisch(k); zeichne(); });
+    box.appendChild(b);
+  });
+  var span = document.createElement("span");
+  span.style.color = "var(--textgrau)"; span.style.fontSize = "12.5px";
+  span.textContent = akt().beschreibung;
+  box.appendChild(span);
+}
+
+function zeichne(){
+  zeichneAktionen(); zeichneLinks(); zeichneRechts();
+  zeichneSchritte(); zeichneBilanz();
+}
+
+el("btnReset").addEventListener("click", function(){
+  state = frisch(state.aktion); zeichne();
+});
+
+state = frisch("loeschen");
+zeichne();
+</script>
+</body>
+</html>
