@@ -334,8 +334,7 @@ function zeilenModell(){
     }
     kopf = '<span class="kw">public</span> ' + state.klasse + "(" + teile.join(", ") + ")";
   }
-  zeilen.push({ html: kopf, schritt: -1 });
-  zeilen.push({ html: "{", schritt: -1 });
+  zeilen.push({ html: kopf + " {", schritt: -1 });
   for (i = 0; i < attrs.length; i++){
     var a = attrs[i], rumpf;
     if (state.ktyp === "std"){

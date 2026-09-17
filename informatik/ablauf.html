@@ -179,16 +179,13 @@ var SZENARIEN = {
     codetitel: "Person.istVolljaehrig()",
     panels: [],
     code: [
-      "public boolean istVolljaehrig()",
-      "{",
+      "public boolean istVolljaehrig() {",
       "    int aktuellesJahr = 2026;",
       "",
-      "    if (aktuellesJahr - geburtsdatum.gibJahr() >= 18)",
-      "    {",
+      "    if (aktuellesJahr - geburtsdatum.gibJahr() >= 18) {",
       "        return true;",
       "    }",
-      "    else",
-      "    {",
+      "    else {",
       "        return false;",
       "    }",
       "}"
@@ -200,19 +197,19 @@ var SZENARIEN = {
       var s = [], alter = 2026 - e.gebJahr, bed = alter >= 18;
       s.push({ zeile:0, notiz:"Die Methode wird aufgerufen. Rückgabetyp <code>boolean</code> — am Ende muss auf jedem Weg ein <code>return</code> stehen.",
                vars:{ "geburtsjahr": e.gebJahr } });
-      s.push({ zeile:2, notiz:"Die lokale Variable <code>aktuellesJahr</code> entsteht und wird mit 2026 belegt.",
+      s.push({ zeile:1, notiz:"Die lokale Variable <code>aktuellesJahr</code> entsteht und wird mit 2026 belegt.",
                vars:{ "geburtsjahr": e.gebJahr, "aktuellesJahr": 2026 } });
-      s.push({ zeile:4, notiz:"Die Bedingung wird ausgerechnet: 2026 − " + e.gebJahr + " = " + alter +
+      s.push({ zeile:3, notiz:"Die Bedingung wird ausgerechnet: 2026 − " + e.gebJahr + " = " + alter +
                ", und " + alter + " >= 18 ist <b>" + bed + "</b>.",
                vars:{ "geburtsjahr": e.gebJahr, "aktuellesJahr": 2026, "Alter (gerechnet)": alter, "Bedingung": String(bed) } });
-      var totZweig = bed ? [8,9,10,11] : [5,6,7];
-      s.push({ zeile: bed ? 6 : 10,
+      var totZweig = bed ? [6,7,8] : [4,5];
+      s.push({ zeile: bed ? 4 : 7,
                notiz: bed
                  ? "Die Bedingung war <b>true</b> — der <code>if</code>-Zweig wird genommen. Der <code>else</code>-Zweig läuft nie."
                  : "Die Bedingung war <b>false</b> — nur der <code>else</code>-Zweig läuft. Der <code>if</code>-Zweig wird übersprungen.",
                tot: totZweig,
                vars:{ "geburtsjahr": e.gebJahr, "aktuellesJahr": 2026, "Alter (gerechnet)": alter, "Bedingung": String(bed) } });
-      s.push({ zeile: bed ? 6 : 10, fertig:true,
+      s.push({ zeile: bed ? 4 : 7, fertig:true,
                notiz:"Mit <code>return</code> endet die Methode sofort und liefert <b>" + bed + "</b> zurück. " +
                      (alter === 18 ? "Achtung: genau 18 Jahre — der Randfall aus Stunde 21." : ""),
                tot: totZweig,
@@ -228,14 +225,11 @@ var SZENARIEN = {
     panels: ["trace"],
     traceKopf: ["i", "Bedingung", "ORGANNAMEN[i]", "spendet[i]", "anzahl"],
     code: [
-      "public int meldeAlleOrgane()",
-      "{",
+      "public int meldeAlleOrgane() {",
       "    int anzahl = 0;",
       "",
-      "    for (int i = 0; i GRENZE ORGANNAMEN.length; i++)",
-      "    {",
-      "        if (spendet[i])",
-      "        {",
+      "    for (int i = 0; i GRENZE ORGANNAMEN.length; i++) {",
+      "        if (spendet[i]) {",
       "            anzahl = anzahl + 1;",
       "        }",
       "    }",
@@ -250,15 +244,15 @@ var SZENARIEN = {
     ],
     lauf: function(e){
       var s = [], anzahl = 0, n = ORGANE.length;
-      s.push({ zeile:2, notiz:"Der Zähler <code>anzahl</code> startet bei 0.", vars:{ anzahl:0 } });
+      s.push({ zeile:1, notiz:"Der Zähler <code>anzahl</code> startet bei 0.", vars:{ anzahl:0 } });
       for (var i = 0; ; i++){
         var weiter = (e.grenze === "<") ? (i < n) : (i <= n);
-        s.push({ zeile:4, notiz:"Schleifenkopf: <code>i = " + i + "</code>, Bedingung <code>" + i + " " +
+        s.push({ zeile:3, notiz:"Schleifenkopf: <code>i = " + i + "</code>, Bedingung <code>" + i + " " +
                    e.grenze + " " + n + "</code> ist <b>" + weiter + "</b>.",
                  vars:{ i:i, anzahl:anzahl, "Bedingung": String(weiter) } });
         if (!weiter) break;
         if (i >= n){
-          s.push({ zeile:6, fehler:true,
+          s.push({ zeile:4, fehler:true,
                    notiz:"<b>ArrayIndexOutOfBoundsException:</b> Index " + i + " gibt es nicht — gültig sind 0 bis " + (n-1) +
                          ". Das Programm bricht hier ab. Genau das passiert bei <code>&lt;=</code>.",
                    vars:{ i:i, anzahl:anzahl },
@@ -266,18 +260,18 @@ var SZENARIEN = {
           return s;
         }
         var frei = e.spendet[i];
-        s.push({ zeile:6, notiz:"Prüfung: <code>spendet[" + i + "]</code> für <b>" + ORGANE[i] + "</b> ist <b>" + frei + "</b>.",
+        s.push({ zeile:4, notiz:"Prüfung: <code>spendet[" + i + "]</code> für <b>" + ORGANE[i] + "</b> ist <b>" + frei + "</b>.",
                  vars:{ i:i, anzahl:anzahl, "ORGANNAMEN[i]": ORGANE[i], "spendet[i]": String(frei) } });
         if (frei){
           anzahl++;
-          s.push({ zeile:8, notiz:"Freigegeben — der Zähler wird um 1 erhöht auf <b>" + anzahl + "</b>.",
+          s.push({ zeile:5, notiz:"Freigegeben — der Zähler wird um 1 erhöht auf <b>" + anzahl + "</b>.",
                    vars:{ i:i, anzahl:anzahl },
                    trace:{ zeilen:[i, "true", ORGANE[i], "true", anzahl] } });
         } else {
           s[s.length-1].trace = { zeilen:[i, "true", ORGANE[i], "false", anzahl] };
         }
       }
-      s.push({ zeile:11, fertig:true,
+      s.push({ zeile:8, fertig:true,
                notiz:"Die Schleife ist zu Ende. Die Methode gibt <b>" + anzahl + "</b> zurück.",
                vars:{ anzahl:anzahl, "Rückgabe": anzahl } });
       return s;
@@ -338,12 +332,9 @@ var SZENARIEN = {
     feldTitel: "ausweise (6 Einträge)",
     traceKopf: ["i", "ausweise[i]", "Vergleich", "Treffer?"],
     code: [
-      "public Organspendeausweis sucheNachNummer(String pNummer)",
-      "{",
-      "    for (int i = 0; i < anzahl; i++)",
-      "    {",
-      "        if (ausweise[i].gibNummer().equals(pNummer))",
-      "        {",
+      "public Organspendeausweis sucheNachNummer(String pNummer) {",
+      "    for (int i = 0; i < anzahl; i++) {",
+      "        if (ausweise[i].gibNummer().equals(pNummer)) {",
       "            return ausweise[i];",
       "        }",
       "    }",
@@ -364,13 +355,13 @@ var SZENARIEN = {
       for (var i = 0; i < daten.length; i++){
         v++;
         var tr = daten[i] === e.gesucht;
-        s.push({ zeile:4,
+        s.push({ zeile:2,
                  notiz:"Vergleich " + v + ": <code>" + daten[i] + "</code> mit <code>" + e.gesucht + "</code> — <b>" + tr + "</b>.",
                  feld:{ inhalt:daten.slice() }, zeiger:i, treffer: tr ? i : null,
                  vars:{ i:i, pNummer:e.gesucht, Vergleiche:v },
                  trace:{ zeilen:[i, daten[i], daten[i] + " = " + e.gesucht + " ?", tr ? "ja" : "nein"] } });
         if (tr){
-          s.push({ zeile:6, fertig:true,
+          s.push({ zeile:3, fertig:true,
                    notiz:"Treffer bei Index " + i + " nach <b>" + v + "</b> Vergleich" + (v===1?"":"en") +
                          ". <code>return</code> beendet die Suche sofort — der Rest wird gar nicht mehr angesehen.",
                    feld:{ inhalt:daten.slice() }, zeiger:i, treffer:i,
@@ -378,7 +369,7 @@ var SZENARIEN = {
           return s;
         }
       }
-      s.push({ zeile:9, fertig:true,
+      s.push({ zeile:6, fertig:true,
                notiz:"Kein Treffer. Erst nach <b>" + v + "</b> Vergleichen — also nach dem <b>ganzen</b> Register — steht fest, dass die Nummer fehlt. Das ist der ungünstigste Fall der linearen Suche.",
                feld:{ inhalt:daten.slice() }, vars:{ Vergleiche:v, "Rückgabe":"null" } });
       return s;
