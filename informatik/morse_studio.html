@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morse-Studio – kurze und lange Signale</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --reihe:#b35c00; --reihehell:#fdf6ee;
+    --gruen:#2a7a3b; --orange:#c45e00; --rot:#b02020; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+    --punkt:#2c7bb6; --strich:#c45e00;
+    --code:"Consolas","DejaVu Sans Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:22px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.5;}
+  @media (max-width:600px){ body{padding:12px;} }
+  .wrap{max-width:1100px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:16px 20px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  header.top h1{font-size:20px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:13px; opacity:.92;}
+  .badge{background:#fff; color:var(--haupt); font-weight:700; border-radius:6px;
+    padding:6px 12px; font-size:14px; white-space:nowrap;}
+  .vorgehen{background:var(--hell); border-left:4px solid var(--akzent);
+    border-radius:0 6px 6px 0; padding:12px 16px; margin:16px 0; font-size:14px;}
+  .vorgehen b{color:var(--haupt);}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:8px;}
+  .grid.baum{grid-template-columns:2fr 1fr;}
+  @media (max-width:1000px){ .grid.baum{grid-template-columns:1fr;} }
+  @media (max-width:860px){ .grid{grid-template-columns:1fr;} }
+  .card{border:1px solid #d7e0ea; background:#fff; border-radius:10px; padding:16px 18px; min-width:0;}
+  .card h2{font-size:15px; color:var(--haupt); margin:0 0 12px; letter-spacing:.02em;}
+  .card h3{font-size:13.5px; color:var(--haupt); margin:14px 0 6px;}
+  [hidden]{display:none !important;}
+
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin:16px 0 0;}
+  .tabs button, .wahl button{font:inherit; font-size:13.5px; padding:7px 13px; border-radius:6px; cursor:pointer;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt);}
+  .tabs button[aria-pressed=true], .wahl button[aria-pressed=true]{background:var(--haupt); color:#fff;
+    border-color:var(--haupt); font-weight:700;}
+  button:focus-visible, input:focus-visible, select:focus-visible, .kn:focus-visible{outline:3px solid var(--akzent); outline-offset:2px;}
+
+  .kontextbar{display:flex; gap:10px 18px; flex-wrap:wrap; align-items:center; margin:0 0 14px;
+    background:#fff; border:1px solid #d7e0ea; border-radius:10px; padding:10px 14px;}
+  .kontextbar .lab{font-size:12.5px; color:var(--textgrau);}
+  .wahl{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+  .wahl button{font-size:13px; padding:6px 11px;}
+  .kontextbar select{font:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--grau); border-radius:5px;}
+  .kontexthinweis{font-size:12.5px; color:var(--textgrau); margin:-6px 0 12px;}
+
+  /* ---------- Bühne: dieselbe Nachricht in verschiedenen Kontexten ---------- */
+  .buehne{position:relative; height:170px; border-radius:8px; overflow:hidden; border:1px solid var(--grau);
+    background:#f3f6fa; display:flex; align-items:center; justify-content:center; margin-bottom:12px;
+    transition:background .05s;}
+  .buehne.klein{height:120px;}
+  .buehne svg{height:88%; width:auto; max-width:100%;}
+  .buehne .status{position:absolute; left:10px; bottom:6px; font-size:12px; color:var(--textgrau);}
+  .buehne.licht{background:#0e1522;}
+  .buehne.licht .status{color:#9fb0c6;}
+  .buehne.licht.an{background:#243248;}
+  .buehne.licht .strahl{opacity:0; transition:opacity .03s;}
+  .buehne.licht.an .strahl{opacity:1;}
+  .buehne.licht .glas{fill:#3a4658;}
+  .buehne.licht.an .glas{fill:#fff6c8;}
+  .buehne.klopfen .tuer{transform-origin:50% 100%;}
+  .buehne.klopfen.kurz .tuer{animation:tock .12s;}
+  .buehne.klopfen.lang .tuer{animation:bumm .3s;}
+  @keyframes tock{30%{transform:translateX(1.5px);} 60%{transform:translateX(-1px);}}
+  @keyframes bumm{20%{transform:translateX(5px) rotate(.6deg);} 50%{transform:translateX(-4px);} 75%{transform:translateX(2px);}}
+  .buehne.streifen{background:#f6f1e4; justify-content:flex-start; align-items:stretch;}
+  .band{position:relative; flex:1; overflow-x:auto; overflow-y:hidden;}
+  .band .papier{position:absolute; left:0; top:50%; height:46px; margin-top:-23px; min-width:100%;
+    background:#fffdf5; border-top:1px solid #e0d6bd; border-bottom:1px solid #e0d6bd;}
+  .band .mk{position:absolute; top:18px; height:9px; background:#1d1d1d; border-radius:5px;}
+
+  /* ---------- Eingabe ---------- */
+  .notiz{width:100%; font-family:var(--code); font-size:22px; letter-spacing:.06em; padding:8px 12px;
+    border:1px solid var(--grau); border-radius:6px; background:var(--reihehell); color:var(--text);}
+  .text{width:100%; font:inherit; font-size:18px; padding:7px 12px; border:1px solid var(--grau);
+    border-radius:6px; text-transform:uppercase;}
+  .pad{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0;}
+  .pad button{font:inherit; font-size:15px; min-width:48px; padding:8px 10px; border-radius:6px; cursor:pointer;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt); font-weight:600;}
+  .pad button.sym{font-family:var(--code); font-size:22px; line-height:1; min-width:56px;}
+  .vorschau{min-height:34px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12.5px;
+    color:var(--textgrau); margin:4px 0 10px;}
+  .vorschau .grp{font-family:var(--code); font-size:17px; color:var(--text); background:var(--hell);
+    border-radius:5px; padding:1px 8px;}
+  .vorschau .wl{color:var(--reihe); font-weight:700; padding:0 4px;}
+  .steuer{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;}
+  .steuer button{font:inherit; font-size:13.5px; font-weight:600; padding:8px 14px; border-radius:6px;
+    cursor:pointer; border:1px solid var(--haupt); background:var(--haupt); color:#fff;}
+  .steuer button.sek{background:#fff; color:var(--haupt);}
+  .steuer button:disabled{opacity:.45; cursor:default;}
+  .klein{font-size:12.5px; color:var(--textgrau);}
+
+  .taste{display:block; width:100%; margin:10px 0 4px; padding:18px 10px; border-radius:40px; cursor:pointer;
+    font:inherit; font-size:16px; font-weight:700; color:#fff; background:#3b4452; border:3px solid #232a33;
+    box-shadow:0 5px 0 #232a33; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+    touch-action:none;}
+  .taste.gedrueckt{transform:translateY(4px); box-shadow:0 1px 0 #232a33; background:#566174;}
+
+  .auftrag{font-size:30px; font-weight:800; letter-spacing:.12em; color:var(--haupt); text-align:center;
+    background:var(--hell); border-radius:8px; padding:8px; margin-bottom:10px;}
+  .zeile{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:6px 0;}
+  .zeile .text{flex:1; min-width:140px; font-size:15px;}
+  .zeile .steuer{margin:0;}
+
+  .fb{margin-top:10px; border-radius:0 6px 6px 0; padding:9px 13px; font-size:13.5px; border-left:4px solid var(--grau);
+    background:#f4f6f9;}
+  .fb:empty{display:none;}
+  .fb.ok{background:#e6f3e9; border-color:var(--gruen);}
+  .fb.nein{background:#fdf1e3; border-color:var(--orange);}
+  .fb.info{background:var(--hell); border-color:var(--akzent);}
+  .fb ul{margin:4px 0 0; padding-left:20px;}
+  .fb .c{font-family:var(--code); font-size:15px;}
+  .empf{font-size:13px; color:var(--textgrau); margin-top:4px;}
+  .empf b{font-size:24px; letter-spacing:.1em; color:var(--haupt); font-family:var(--code);}
+
+  details.tab{margin-top:14px; border-top:1px solid #e6ecf2; padding-top:10px;}
+  details summary{cursor:pointer; color:var(--haupt); font-weight:600; font-size:13.5px;}
+  .tabelle{display:grid; grid-template-columns:repeat(auto-fill,minmax(82px,1fr)); gap:4px; margin-top:8px;}
+  .tabelle div{border:1px solid #e0e7ef; border-radius:4px; padding:2px 6px; font-size:13px; display:flex; gap:6px;
+    align-items:baseline;}
+  .tabelle b{min-width:1em;}
+  .tabelle span{font-family:var(--code); font-size:14px;}
+
+  /* ---------- Morsebaum ---------- */
+  #baumSvg{width:100%; height:auto; display:block; touch-action:manipulation;}
+  .kante{stroke:#c3ceda; stroke-width:2.5;}
+  .kante.p{stroke-dasharray:3 4;}
+  .kante.weg.p{stroke:var(--punkt); stroke-width:5;}
+  .kante.weg.s{stroke:var(--strich); stroke-width:5;}
+  .kn circle{fill:#fff; stroke:var(--haupt); stroke-width:2;}
+  .kn text{font-family:"Segoe UI",system-ui,sans-serif; font-weight:700; fill:var(--haupt);
+    text-anchor:middle; dominant-baseline:central; pointer-events:none;}
+  .kn{cursor:pointer;}
+  .kn.frei circle{stroke:#b9c4d0; stroke-dasharray:3 3; fill:#f6f8fa;}
+  .kn.frei text{fill:#9aa6b3; font-weight:400;}
+  .kn.verdeckt circle{fill:#f3f6fa; stroke:#9fb3c8;}
+  .kn.weg circle{fill:var(--hell);}
+  .kn.aktuell circle{fill:var(--haupt);}
+  .kn.aktuell text{fill:#fff;}
+  .kn.gewaehlt circle{fill:#fff3e0; stroke:var(--orange); stroke-width:4;}
+  .kn.neu circle{fill:#e6f3e9; stroke:var(--gruen);}
+  .kn.wurzel circle{fill:var(--haupt);}
+  .kn.wurzel text{fill:#fff; font-weight:600;}
+  .legende{display:flex; gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--textgrau); margin-top:6px;}
+  .legende i{display:inline-block; width:26px; height:0; border-top:4px solid; vertical-align:middle; margin-right:5px;}
+  .aufgabe{font-size:15px; background:var(--hell); border-radius:6px; padding:8px 12px; margin:8px 0;}
+  .aufgabe b{font-family:var(--code); font-size:22px; color:var(--haupt); letter-spacing:.05em;}
+  .weganz{font-size:13.5px; margin:6px 0;}
+  .weganz b{font-family:var(--code); font-size:20px;}
+  .zerl{list-style:none; padding:0; margin:8px 0 0; max-height:300px; overflow-y:auto;
+    border:1px solid #e6ecf2; border-radius:6px;}
+  .zerl li{display:flex; justify-content:space-between; gap:10px; padding:4px 10px; border-bottom:1px solid #eef2f6;
+    font-size:14px;}
+  .zerl li:nth-child(odd){background:#f8fafc;}
+  .zerl .c{font-family:var(--code); color:var(--textgrau);}
+  .zerl .w{font-weight:700; letter-spacing:.08em; color:var(--haupt);}
+  .merk{margin-top:12px; background:#fdeaea; border-left:4px solid var(--rot); border-radius:0 6px 6px 0;
+    padding:10px 13px; font-size:13px;}
+  .merk b{color:var(--rot);}
+  .entdecken{margin-top:18px;}
+  .entdecken details{background:#fff; border:1px solid #d7e0ea; border-radius:8px; padding:9px 13px; margin-bottom:8px;}
+  .entdecken details p{margin:8px 0 2px; font-size:13.5px;}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+  footer{margin-top:22px; font-size:12px; color:var(--textgrau); text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1 id="titel">Morse-Studio</h1>
+      <p id="untertitel">Kurze und lange Signale – als Ton, Licht oder Klopfen.</p>
+    </div>
+    <span class="badge" id="badge">Empfangen</span>
+  </header>
+
+  <div class="tabs" id="tabs" role="group" aria-label="Modus"></div>
+  <div class="vorgehen" id="vorgehen"></div>
+
+  <div class="kontextbar" id="kontextbar">
+    <span class="lab">Signal als:</span>
+    <div class="wahl" id="kontextwahl" role="group" aria-label="Kontext"></div>
+    <label class="lab" for="tempo">Tempo</label>
+    <select id="tempo"></select>
+  </div>
+  <p class="kontexthinweis" id="kontexthinweis"></p>
+
+  <!-- =================== EMPFANGEN =================== -->
+  <section id="s-empfangen" hidden>
+    <div class="grid">
+      <div class="card">
+        <h2>1 · Signal empfangen</h2>
+        <div class="buehne" id="buehne1" role="img" aria-label="Signalanzeige"></div>
+        <div class="wahl" id="stufenwahl" role="group" aria-label="Länge der Nachricht"></div>
+        <div class="steuer">
+          <button type="button" id="btnPlay1">▶ Abspielen</button>
+          <button type="button" id="btnStopp1" class="sek">■ Stopp</button>
+          <button type="button" id="btnNeu1" class="sek">Neue Nachricht</button>
+        </div>
+        <p class="klein" id="zaehler1"></p>
+      </div>
+      <div class="card">
+        <h2>2 · Aufschreiben und übersetzen</h2>
+        <label for="notiz1" class="klein">Das habe ich wahrgenommen (· und —, Lücke zwischen Buchstaben, / zwischen Wörtern):</label>
+        <input id="notiz1" class="notiz" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="pad" data-ziel="notiz1"></div>
+        <div class="vorschau" id="vorschau1" aria-live="polite"></div>
+        <div class="steuer"><button type="button" id="btnPruef1">Notiz prüfen</button></div>
+        <div class="fb" id="fb1" aria-live="polite"></div>
+
+        <h3>Mit der Morsetabelle übersetzt heißt das:</h3>
+        <input id="text1" class="text" autocomplete="off" spellcheck="false" aria-label="Übersetzung">
+        <div class="steuer">
+          <button type="button" id="btnPruefText1">Übersetzung prüfen</button>
+          <button type="button" id="btnLoes1" class="sek">Auflösen</button>
+        </div>
+        <div class="fb" id="fb1b" aria-live="polite"></div>
+        <details class="tab"><summary>Morsetabelle einblenden</summary><div class="tabelle"></div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== SENDEN =================== -->
+  <section id="s-senden" hidden>
+    <div class="grid">
+      <div class="card">
+        <h2>1 · Codieren</h2>
+        <div class="auftrag" id="auftrag2" aria-live="polite"></div>
+        <div class="zeile">
+          <input id="eigen2" class="text" placeholder="eigenes Wort, z. B. dein Name" aria-label="Eigenes Wort">
+          <div class="steuer">
+            <button type="button" id="btnEigen2" class="sek">Übernehmen</button>
+            <button type="button" id="btnNeu2" class="sek">Zufallswort</button>
+          </div>
+        </div>
+        <label for="notiz2" class="klein">Dein Morsecode (Tabelle benutzen!):</label>
+        <input id="notiz2" class="notiz" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="pad" data-ziel="notiz2"></div>
+        <button type="button" class="taste" id="taste2" aria-describedby="tasteHinweis">Morsetaste</button>
+        <p class="klein" id="tasteHinweis">Morsetaste: <b>kurz</b> tippen ergibt ·, <b>lang</b> halten
+          (mehr als ¼ Sekunde) ergibt —. Nach jedem Buchstaben „Lücke“ drücken.
+          Mit der Tastatur: Taste anwählen und die Leertaste kurz oder lang drücken.</p>
+        <div class="vorschau" id="vorschau2" aria-live="polite"></div>
+      </div>
+      <div class="card">
+        <h2>2 · Senden</h2>
+        <div class="buehne" id="buehne2" role="img" aria-label="Signalanzeige"></div>
+        <div class="steuer">
+          <button type="button" id="btnSend2">▶ Senden</button>
+          <button type="button" id="btnStopp2" class="sek">■ Stopp</button>
+        </div>
+        <div class="empf" id="empf2" aria-live="polite"></div>
+        <div class="fb" id="fb2" aria-live="polite"></div>
+        <details class="tab"><summary>Morsetabelle einblenden</summary><div class="tabelle"></div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== MORSEBAUM =================== -->
+  <section id="s-baum" hidden>
+    <div class="tabs" id="subtabs" role="group" aria-label="Teil des Morsebaums" style="margin:0 0 12px"></div>
+    <div class="grid baum">
+      <div class="card">
+        <h2>Der Morsebaum</h2>
+        <svg id="baumSvg" role="group" aria-label="Morsebaum"></svg>
+        <div class="legende" id="legende"></div>
+      </div>
+      <div class="card">
+        <!-- Wandern -->
+        <div id="p-wandern">
+          <h2>Durch den Baum wandern</h2>
+          <div class="wahl" id="richtungwahl" role="group" aria-label="Richtung"></div>
+          <div class="aufgabe" id="baumAufgabe" aria-live="polite"></div>
+          <div class="buehne klein" id="buehne3" role="img" aria-label="Signalanzeige"></div>
+          <div class="pad">
+            <button type="button" class="sym" id="btnWegP" aria-label="Punkt">·</button>
+            <button type="button" class="sym" id="btnWegS" aria-label="Strich">—</button>
+            <button type="button" id="btnWegZurueck">↶ Schritt zurück</button>
+            <button type="button" id="btnWegStart">↺ Start</button>
+          </div>
+          <div class="weganz" id="weganz" aria-live="polite"></div>
+          <div class="steuer">
+            <button type="button" id="btnStoppHier">✋ Hier anhalten</button>
+            <button type="button" id="btnPlay3" class="sek">▶ Signal abspielen</button>
+            <button type="button" id="btnNeu3" class="sek">Neue Aufgabe</button>
+          </div>
+          <div class="fb" id="fb3" aria-live="polite"></div>
+          <p class="klein">Tastatur: <b>.</b> oder <b>-</b> für einen Schritt, Rücktaste zurück, Eingabe = anhalten.</p>
+        </div>
+        <!-- Füllen -->
+        <div id="p-fuellen">
+          <h2>Den Baum aus der Tabelle bauen</h2>
+          <p class="klein">Nur E und T stehen schon im Baum. Tippe einen leeren Platz an: Der Weg dorthin
+            ist sein Morsecode. Suche in der Morsetabelle den Buchstaben mit genau diesem Code und trage ihn ein.</p>
+          <div class="aufgabe" id="fuellAufgabe" aria-live="polite">Wähle einen leeren Platz im Baum.</div>
+          <div class="zeile">
+            <input id="fuellIn" class="text" maxlength="1" aria-label="Buchstabe für den gewählten Platz" disabled>
+            <div class="steuer"><button type="button" id="btnFuell">Eintragen</button></div>
+          </div>
+          <div class="fb" id="fb4" aria-live="polite"></div>
+          <p class="klein" id="fuellStand"></p>
+          <div class="steuer">
+            <button type="button" id="btnFuellAlle" class="sek">Alle aufdecken</button>
+            <button type="button" id="btnFuellNeu" class="sek">Von vorn</button>
+          </div>
+          <details class="tab"><summary>Morsetabelle einblenden</summary><div class="tabelle"></div></details>
+        </div>
+        <!-- Ohne Pause -->
+        <div id="p-pause">
+          <h2>Was passiert ohne Pausen?</h2>
+          <p class="klein">Gib eine Folge <b>ohne</b> Lücken ein. Im Baum darf man an jedem Buchstaben anhalten –
+            also sucht das Studio alle Möglichkeiten, die Folge zu lesen.</p>
+          <input id="pauseIn" class="notiz" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Folge ohne Pausen">
+          <div class="pad" data-ziel="pauseIn" data-ohne-luecke="1"></div>
+          <div class="wahl" id="pauseVorlagen" role="group" aria-label="Beispiele"></div>
+          <div class="fb" id="fb5" aria-live="polite"></div>
+          <ul class="zerl" id="zerlListe" hidden></ul>
+          <div class="merk"><b>Darum braucht Morse Pausen:</b> Im Baum kann man an jedem Knoten anhalten
+            oder weiterlaufen. Erst die Pause sagt dem Empfänger: „Hier anhalten – Buchstabe fertig.“
+            ASCII braucht keine Pause, weil jeder Buchstabe genau 8 Bit lang ist.</div>
+        </div>
+      </div>
+    </div>
+    <div class="entdecken" id="entdecken"></div>
+  </section>
+
+  <p class="sr" id="ansage" aria-live="assertive"></p>
+  <footer>Morse-Studio · Reihe „Daten und ihre Codierung“ · Informatik 6</footer>
+</div>
+
+<script>
+"use strict";
+/* ================================================================
+   DATEN – alles Inhaltliche steht hier. Eine neue Nachricht, ein
+   neuer Kontext-Text oder ein neues Baum-Beispiel ist ein Eintrag,
+   keine Codeänderung.
+   ================================================================ */
+var MORSE = {
+  A:".-", B:"-...", C:"-.-.", D:"-..", E:".", F:"..-.", G:"--.", H:"....", I:"..",
+  J:".---", K:"-.-", L:".-..", M:"--", N:"-.", O:"---", P:".--.", Q:"--.-", R:".-.",
+  S:"...", T:"-", U:"..-", V:"...-", W:".--", X:"-..-", Y:"-.--", Z:"--..",
+  "0":"-----", "1":".----", "2":"..---", "3":"...--", "4":"....-",
+  "5":".....", "6":"-....", "7":"--...", "8":"---..", "9":"----."
+};
+/* Plätze im Baum (Tiefe 4), die im Alphabet A–Z frei bleiben */
+var FREI = { "..--":"Ü", ".-.-":"Ä", "---.":"Ö", "----":"CH" };
+
+var DATEN = {
+  kontexte: {
+    ton:      { name:"🔊 Ton",
+                hinweis:"Nur hinhören – es gibt nichts zu sehen. Am iPad: Stummschalter aus und Lautstärke hoch." },
+    licht:    { name:"🔦 Taschenlampe",
+                hinweis:"Nur hinsehen: Wie lange bleibt die Lampe an? Kurz = ·, lang = —." },
+    klopfen:  { name:"✊ Klopfen",
+                hinweis:"Ein Klopfer kann nicht „lang“ sein! Darum gilt hier eine andere Vereinbarung: " +
+                        "heller Klopfer mit dem Knöchel = ·, dumpfer Schlag mit der Faust = —. Ton an!" },
+    streifen: { name:"📜 Papierstreifen",
+                hinweis:"So schrieb Morses Telegraf 1837 mit: Der Streifen läuft durch, der Stift drückt kurz oder lang auf." }
+  },
+  tempi: { langsam:{name:"langsam", u:240}, mittel:{name:"mittel", u:160}, schnell:{name:"schnell", u:100} },
+  pausenDehnung: 1.6,   // Pausen zwischen Buchstaben/Wörtern etwas länger als im Profi-Standard
+  tasteSchwelle: 250,   // ms: kürzer = Punkt, länger = Strich
+  stufen: {
+    buchstabe: { name:"Buchstabe", liste:"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("") },
+    wort:      { name:"Wort", liste:["SOS","OMA","OPA","TEE","EIS","BIT","BYTE","CODE","DATEN","MAUS",
+                  "HUND","KATZE","PIZZA","FUNK","LICHT","TON","INFO","PIXEL","NAME","FARBE","TAFEL",
+                  "BUCH","REGEN","SONNE","MORSE","SIGNAL","HAFEN","SCHIFF","NEBEL","KLOPF"] },
+    satz:      { name:"Zwei Wörter", liste:["GUTE NACHT","HALLO WELT","KOMM HER","ALLES GUT","BIS BALD",
+                  "LICHT AN","SOS HILFE","ICH KOMME","SCHIFF AHOI","TEE BITTE"] }
+  },
+  sendeWoerter: ["HALLO","SOS","INFO","MORSE","CODE","DATEN","PIZZA","SCHULE","KATZE","HAFEN","NEBEL","LICHT"],
+  pauseVorlagen: [
+    { name:"·—··", code:".-.." },
+    { name:"··· ——— ··· ohne Pausen", code:"...---..." },
+    { name:"————", code:"----" },
+    { name:"—·—·", code:"-.-." },
+    { name:"········", code:"........" }
+  ],
+  entdecken: [
+    { frage:"Warum stehen E und T ganz oben im Baum?",
+      antwort:"Sie brauchen nur ein einziges Signal. Morse gab den häufigsten Buchstaben der englischen Sprache " +
+              "die kürzesten Codes – das spart beim Funken Zeit." },
+    { frage:"Wie viele Plätze gibt es auf jeder Ebene? Was fällt dir auf?",
+      antwort:"2, 4, 8, 16 – bei jedem Schritt verdoppelt es sich, weil es immer genau zwei Möglichkeiten gibt " +
+              "(· oder —). Genau wie bei Bits: Mit 4 Bit gibt es 16 Möglichkeiten." },
+    { frage:"Kann man am Baum ablesen, wie lang der Code eines Buchstabens ist?",
+      antwort:"Ja: Die Ebene ist die Länge. Buchstaben auf Ebene 4 (z. B. Q, Y, H) brauchen vier Signale." },
+    { frage:"Warum bleiben in der untersten Reihe vier Plätze leer?",
+      antwort:"Das Alphabet A–Z hat nur 26 Buchstaben, die Ebenen 1–4 haben aber 2 + 4 + 8 + 16 = 30 Plätze. " +
+              "Im deutschen Morsealphabet stehen dort Ä, Ö, Ü und CH." },
+    { frage:"Was ist schneller: mit der Tabelle oder mit dem Baum übersetzen?",
+      antwort:"Beim Decodieren ist der Baum schneller: Man folgt einfach dem Weg, statt die ganze Tabelle " +
+              "abzusuchen. Beim Codieren ist die Tabelle praktischer – dort steht der Buchstabe sortiert." }
+  ]
+};
+
+var MODI = {
+  empfangen: { tab:"1 · Empfangen", badge:"Empfangen", titel:"Morse-Studio: Signale empfangen",
+    untertitel:"Dieselbe Nachricht kann ein Ton, ein Lichtblitz oder ein Klopfen sein.",
+    vorgehen:"<b>So geht’s:</b> Wähle oben, wie das Signal ankommt. Spiele die Nachricht ab und " +
+             "<b>notiere</b> jedes Signal als · (kurz) oder — (lang). Eine lange Pause heißt: Buchstabe fertig → Lücke. " +
+             "<b>Prüfe</b> deine Notiz und <b>übersetze</b> sie dann mit der Morsetabelle." },
+  senden: { tab:"2 · Senden", badge:"Senden", titel:"Morse-Studio: Signale senden",
+    untertitel:"Jetzt bist du der Funker – und der Empfänger liest genau das, was du sendest.",
+    vorgehen:"<b>So geht’s:</b> <b>Codiere</b> das Wort mit der Morsetabelle – mit den Knöpfen oder der Morsetaste. " +
+             "Dann <b>sende</b> es. Der Empfänger übersetzt stur Zeichen für Zeichen. Kommt dein Wort an?" },
+  baum: { tab:"3 · Morsebaum", badge:"Morsebaum", titel:"Morse-Studio: der Morsebaum",
+    untertitel:"Eine zweite Darstellung derselben Codierung: · geht nach links, — nach rechts.",
+    vorgehen:"<b>So geht’s:</b> Jeder Buchstabe ist ein Platz im Baum. Der <b>Weg</b> vom Start dorthin ist sein Code: " +
+             "Für jedes · ein Schritt nach links, für jedes — ein Schritt nach rechts." }
+};
+var BAUMTEILE = { wandern:"Wandern", fuellen:"Baum füllen", pause:"Ohne Pause?" };
+
+/* ================================================================
+   REINE LOGIK – ohne DOM, in Node prüfbar
+   ================================================================ */
+var RUECK = {};
+Object.keys(MORSE).forEach(function(k){ RUECK[MORSE[k]] = k; });
+var BUCHSTABEN = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function umschreiben(text){
+  return String(text).toUpperCase().replace(/Ä/g, "AE").replace(/Ö/g, "OE").replace(/Ü/g, "UE").replace(/ß/g, "SS");
+}
+function schoen(code){ return code.replace(/\./g,"·").replace(/-/g,"—"); }
+
+/* Klartext -> kanonischer Code: Buchstaben durch " ", Wörter durch " / " getrennt */
+function zuCode(text){
+  var unbekannt = [];
+  var woerter = String(text).toUpperCase().trim().split(/\s+/).filter(Boolean).map(function(w){
+    return w.split("").map(function(ch){
+      if (MORSE[ch]) return MORSE[ch];
+      if (unbekannt.indexOf(ch) < 0) unbekannt.push(ch);
+      return null;
+    }).filter(Boolean);
+  }).filter(function(w){ return w.length; });
+  return { code: woerter.map(function(w){ return w.join(" "); }).join(" / "), unbekannt: unbekannt };
+}
+
+/* beliebige Schreibweise (· • . * — – - _) -> kanonisch */
+function normalisiere(eingabe){
+  var s = String(eingabe).replace(/[·•∙⋅*]/g, ".").replace(/[—–−_‒―]/g, "-").replace(/\|/g, "/");
+  var fehler = [];
+  s.replace(/[^.\-\/\s]/g, function(ch){ if (fehler.indexOf(ch) < 0) fehler.push(ch); return ""; });
+  s = s.replace(/[^.\-\/\s]/g, "");
+  var woerter = s.split("/").map(function(w){ return w.trim().split(/\s+/).filter(Boolean); })
+                 .filter(function(w){ return w.length; });
+  return { code: woerter.map(function(w){ return w.join(" "); }).join(" / "), fehler: fehler };
+}
+
+function zerlege(code){   // -> [[buchstabencode, …], …] je Wort
+  if (!code) return [];
+  return code.split(" / ").map(function(w){ return w.split(" ").filter(Boolean); });
+}
+function flach(code){ return zerlege(code).reduce(function(a, w){ return a.concat(w); }, []); }
+
+function zuText(code){
+  return zerlege(code).map(function(w){
+    return w.map(function(b){ return RUECK[b] || "?"; }).join("");
+  }).join(" ");
+}
+
+/* Zeitplan: wann ist welches Signal an? u = Länge eines Punkts in ms */
+function zeitplan(code, u, dehnung){
+  var ev = [], t = 0, woerter = zerlege(code);
+  woerter.forEach(function(w, wi){
+    w.forEach(function(b, bi){
+      b.split("").forEach(function(sym, si){
+        var d = sym === "." ? u : 3 * u;
+        ev.push({ t: t, d: d, sym: sym });
+        t += d;
+        if (si < b.length - 1) t += u;
+      });
+      if (bi < w.length - 1) t += Math.round(3 * u * dehnung);
+    });
+    if (wi < woerter.length - 1) t += Math.round(7 * u * dehnung);
+  });
+  return { events: ev, dauer: t };
+}
+
+/* Notiz der SuS gegen die gesendete Nachricht – mit Begründung je Buchstabe */
+function vergleicheCode(ist, soll){
+  var a = flach(ist), b = flach(soll), n = Math.max(a.length, b.length), liste = [];
+  for (var i = 0; i < n; i++){
+    var x = a[i], y = b[i], grund = "";
+    if (x === y) { liste.push({ nr:i+1, ist:x, soll:y, ok:true, grund:"" }); continue; }
+    if (x === undefined) grund = "fehlt – gesendet wurde hier noch ein Buchstabe";
+    else if (y === undefined) grund = "zu viel – hier wurde nichts mehr gesendet";
+    else if (x.length !== y.length) grund = "gesendet wurden " + y.length + " Signal" + (y.length > 1 ? "e" : "") +
+      ", notiert hast du " + x.length;
+    else {
+      var k = 0; while (x[k] === y[k]) k++;
+      grund = "die Anzahl stimmt, aber beim " + (k + 1) + ". Signal sind kurz und lang vertauscht";
+    }
+    liste.push({ nr:i+1, ist:x, soll:y, ok:false, grund:grund });
+  }
+  var ok = liste.every(function(e){ return e.ok; });
+  var woerterOk = zerlege(ist).length === zerlege(soll).length;
+  var hinweis = "";
+  if (!ok && a.join("") === b.join(""))
+    hinweis = "Alle Signale stimmen – nur die Lücken zwischen den Buchstaben sitzen an anderen Stellen. " +
+              "Achte auf die längeren Pausen!";
+  else if (!ok && a.length !== b.length)
+    hinweis = "Du hast " + a.length + " Buchstaben notiert, gesendet wurden " + b.length +
+              ". Die längeren Pausen zeigen, wo ein Buchstabe endet.";
+  return { ok: ok && woerterOk, zeichenOk: ok, woerterOk: woerterOk, liste: liste, hinweis: hinweis };
+}
+
+function klartext(s){ return String(s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+/* Übersetzung prüfen – unterscheidet „falsch übersetzt“ von „falsch notiert, aber richtig übersetzt“ */
+function vergleicheText(antwort, soll, notiz){
+  var a = klartext(antwort);
+  if (!a) return { ok:false, art:"leer" };
+  if (a === klartext(soll)) return { ok:true, art:"richtig" };
+  if (notiz && a === klartext(zuText(notiz))) return { ok:false, art:"folgefehler" };
+  return { ok:false, art:"falsch" };
+}
+
+/* Morsebaum */
+function baumKnoten(){
+  var k = [{ pfad:"", tiefe:0, index:0, zeichen:"Start", frei:false }];
+  for (var d = 1; d <= 4; d++){
+    for (var i = 0; i < (1 << d); i++){
+      var p = "";
+      for (var j = d - 1; j >= 0; j--) p += (i >> j) & 1 ? "-" : ".";
+      var z = RUECK[p];
+      k.push({ pfad:p, tiefe:d, index:i, zeichen: (z && BUCHSTABEN.indexOf(z) >= 0) ? z : (FREI[p] || ""),
+               frei: !(z && BUCHSTABEN.indexOf(z) >= 0) });
+    }
+  }
+  return k;
+}
+function baumLayout(kn, quer){
+  var W = quer ? 360 : 800, H = quer ? 600 : 330;
+  return { W:W, H:H, pos: kn.map(function(n){
+    var anteil = (n.index + 0.5) / (1 << n.tiefe);
+    return quer ? { x: 34 + n.tiefe * (W - 68) / 4, y: 10 + anteil * (H - 20) }
+                : { x: 10 + anteil * (W - 20), y: 30 + n.tiefe * (H - 60) / 4 };
+  }) };
+}
+function buchstabeAm(pfad){
+  var z = RUECK[pfad];
+  return (z && BUCHSTABEN.indexOf(z) >= 0) ? z : null;
+}
+function vergleicheWeg(ist, soll){
+  if (ist === soll) return { ok:true, grund:"" };
+  var richtung = function(s){ return s === "." ? "links (·)" : "rechts (—)"; };
+  if (soll.indexOf(ist) === 0)
+    return { ok:false, grund:"Du hast zu früh angehalten – es fehl" + (soll.length - ist.length > 1 ? "en" : "t") +
+      " noch " + (soll.length - ist.length) + " Schritt" + (soll.length - ist.length > 1 ? "e" : "") + "." };
+  if (ist.indexOf(soll) === 0)
+    return { ok:false, grund:"Du bist zu weit gelaufen – nach " + soll.length + " Schritt" +
+      (soll.length > 1 ? "en" : "") + " hättest du anhalten müssen." };
+  var k = 0; while (ist[k] === soll[k]) k++;
+  return { ok:false, grund:"Beim " + (k + 1) + ". Schritt bist du nach " + richtung(ist[k]) +
+    " gegangen, richtig wäre " + richtung(soll[k]) + "." };
+}
+
+/* alle Lesarten einer Folge ohne Pausen (nur A–Z) */
+function zerlegungen(folge, max){
+  var n = folge.length, zahl = new Array(n + 1).fill(0);
+  zahl[n] = 1;
+  for (var i = n - 1; i >= 0; i--)
+    for (var l = 1; l <= 4 && i + l <= n; l++)
+      if (buchstabeAm(folge.substr(i, l))) zahl[i] += zahl[i + l];
+  var liste = [];
+  (function rek(i, teile){
+    if (liste.length >= max) return;
+    if (i === n) { liste.push(teile.slice()); return; }
+    for (var l = 1; l <= 4 && i + l <= n; l++){
+      var p = folge.substr(i, l);
+      if (buchstabeAm(p)) { teile.push(p); rek(i + l, teile); teile.pop(); }
+    }
+  })(0, []);
+  return { anzahl: n ? zahl[0] : 0, liste: liste };
+}
+
+function ziehe(liste, letzte){
+  if (liste.length < 2) return liste[0];
+  var x; do { x = liste[Math.floor(Math.random() * liste.length)]; } while (x === letzte);
+  return x;
+}
+
+/* ===== ab hier: Anzeige, Ton und Bedienung ===== */
+var $ = function(id){ return document.getElementById(id); };
+var state = {
+  modus:"empfangen", teil:"wandern", kontext:"ton", tempo:"langsam", stufe:"wort",
+  e:{ soll:"", code:"", abgespielt:0 },
+  s:{ soll:"" },
+  b:{ richtung:"code", ziel:"", weg:"", gefuellt:{}, neu:"", auswahl:null },
+  lauf:null
+};
+function u(){ return DATEN.tempi[state.tempo].u; }
+function ansage(t){ $("ansage").textContent = ""; setTimeout(function(){ $("ansage").textContent = t; }, 30); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+
+/* ---------- Ton (Web Audio) ---------- */
+var AC = null, rauschen = null;
+function audio(){
+  if (!AC){
+    var C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return null;
+    AC = new C();
+  }
+  if (AC.state === "suspended") AC.resume();
+  if (!rauschen){
+    rauschen = AC.createBuffer(1, Math.round(AC.sampleRate * 0.4), AC.sampleRate);
+    var d = rauschen.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return AC;
+}
+function klopfer(ctx, ziel, wann, lang){
+  var quellen = [];
+  var n = ctx.createBufferSource(); n.buffer = rauschen;
+  var f = ctx.createBiquadFilter(); var g = ctx.createGain();
+  f.type = lang ? "lowpass" : "bandpass"; f.frequency.value = lang ? 380 : 2100; f.Q.value = lang ? 0.7 : 2.5;
+  g.gain.setValueAtTime(lang ? 0.7 : 1.0, wann);
+  g.gain.exponentialRampToValueAtTime(0.001, wann + (lang ? 0.16 : 0.05));
+  n.connect(f); f.connect(g); g.connect(ziel); n.start(wann); n.stop(wann + 0.3); quellen.push(n);
+  var o = ctx.createOscillator(); var og = ctx.createGain();
+  o.type = lang ? "sine" : "triangle";
+  o.frequency.setValueAtTime(lang ? 150 : 950, wann);
+  o.frequency.exponentialRampToValueAtTime(lang ? 55 : 700, wann + (lang ? 0.28 : 0.04));
+  og.gain.setValueAtTime(lang ? 1.0 : 0.35, wann);
+  og.gain.exponentialRampToValueAtTime(0.001, wann + (lang ? 0.38 : 0.05));
+  o.connect(og); og.connect(ziel); o.start(wann); o.stop(wann + 0.45); quellen.push(o);
+  return quellen;
+}
+
+/* ---------- Bühne: zeigt Signale im gewählten Kontext ---------- */
+var SVG = {
+  ton: '<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M20 38h18l24-20v64L38 62H20z" fill="#14507d"/>' +
+       '<path d="M74 34q10 16 0 32M84 26q18 24 0 48" fill="none" stroke="#9fb3c8" stroke-width="5" stroke-linecap="round"/></svg>',
+  licht: '<svg viewBox="0 0 300 100" aria-hidden="true">' +
+       '<polygon class="strahl" points="112,38 300,0 300,100 112,62" fill="#fff6c8" opacity="0"/>' +
+       '<rect x="20" y="40" width="70" height="20" rx="4" fill="#5a6474"/>' +
+       '<polygon points="88,36 112,30 112,70 88,64" fill="#6c7688"/>' +
+       '<rect class="glas" x="108" y="30" width="6" height="40" rx="2"/>' +
+       '<rect x="44" y="36" width="12" height="6" rx="2" fill="#c45e00"/></svg>',
+  klopfen: '<svg viewBox="0 0 140 110" aria-hidden="true"><g class="tuer">' +
+       '<rect x="30" y="4" width="60" height="104" rx="3" fill="#8a5a33"/>' +
+       '<rect x="38" y="12" width="44" height="38" rx="2" fill="#9b6a40"/><rect x="38" y="58" width="44" height="42" rx="2" fill="#9b6a40"/>' +
+       '<circle cx="80" cy="62" r="4" fill="#e0c060"/></g>' +
+       '<path d="M104 46q10-4 14 4t-4 14q-8 4-12-2z" fill="#f0c8a0" stroke="#b08060"/></svg>'
+};
+function Buehne(el){ this.el = el; this.cursor = 0; this.aufbauen(); }
+Buehne.prototype.aufbauen = function(){
+  var k = state.kontext;
+  this.el.className = "buehne " + k + (this.el.id === "buehne3" ? " klein" : "");
+  this.el.setAttribute("aria-label", DATEN.kontexte[k].name.replace(/^\S+\s/, "") + " – Signalanzeige");
+  if (k === "streifen"){
+    this.el.innerHTML = '<div class="band"><div class="papier"></div></div><span class="status"></span>';
+    this.band = this.el.querySelector(".band"); this.papier = this.el.querySelector(".papier");
+  } else {
+    this.el.innerHTML = SVG[k] + '<span class="status"></span>';
+  }
+  this.cursor = 0;
+};
+Buehne.prototype.status = function(t){ var s = this.el.querySelector(".status"); if (s) s.textContent = t; };
+Buehne.prototype.leeren = function(){ this.aus(); if (state.kontext === "streifen") this.aufbauen(); this.cursor = 0; };
+/* x in Punkt-Einheiten; ohne x: an der Schreibposition weiter (Morsetaste) */
+Buehne.prototype.an = function(sym, x){
+  var k = state.kontext, el = this.el;
+  if (k === "licht") el.classList.add("an");
+  else if (k === "klopfen"){
+    el.classList.remove("kurz", "lang"); void el.offsetWidth;
+    el.classList.add(sym === "." ? "kurz" : "lang");
+  } else if (k === "streifen"){
+    var PX = 14, pos = (x === undefined ? this.cursor : x) + 1;
+    var mk = document.createElement("div");
+    mk.className = "mk";
+    mk.style.left = (pos * PX) + "px";
+    mk.style.width = ((sym === "." ? 1 : 3) * PX) + "px";
+    this.papier.appendChild(mk);
+    this.papier.style.width = ((pos + 6) * PX) + "px";
+    this.band.scrollLeft = this.band.scrollWidth;
+    this.cursor = pos + (sym === "." ? 1 : 3);
+  }
+};
+Buehne.prototype.aus = function(){ this.el.classList.remove("an"); };
+Buehne.prototype.luecke = function(einheiten){ this.cursor += einheiten; };
+
+var buehnen = {};
+
+function stopp(){
+  var l = state.lauf;
+  if (!l) return;
+  l.timer.forEach(clearTimeout);
+  l.quellen.forEach(function(q){ try { q.stop(0); } catch(e){} });
+  if (l.master) try { l.master.disconnect(); } catch(e){}
+  l.buehne.aus(); l.buehne.status("");
+  state.lauf = null;
+}
+
+function abspielen(buehne, code, fertig){
+  stopp();
+  var plan = zeitplan(code, u(), DATEN.pausenDehnung), k = state.kontext, VOR = 150;
+  var lauf = { timer:[], quellen:[], master:null, buehne:buehne };
+  state.lauf = lauf;
+  buehne.leeren();
+  buehne.status("läuft …");
+  if (k === "ton" || k === "klopfen"){
+    var ctx = audio();
+    if (ctx){
+      var t0 = ctx.currentTime + VOR / 1000;
+      lauf.master = ctx.createGain(); lauf.master.gain.value = 1; lauf.master.connect(ctx.destination);
+      if (k === "ton"){
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = 650; g.gain.setValueAtTime(0, t0);
+        plan.events.forEach(function(ev){
+          var a = t0 + ev.t / 1000, e = a + ev.d / 1000;
+          g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(0.3, a + 0.006);
+          g.gain.setValueAtTime(0.3, e - 0.006); g.gain.linearRampToValueAtTime(0, e);
+        });
+        o.connect(g); g.connect(lauf.master); o.start(t0); o.stop(t0 + plan.dauer / 1000 + 0.1);
+        lauf.quellen.push(o);
+      } else {
+        plan.events.forEach(function(ev){
+          lauf.quellen = lauf.quellen.concat(klopfer(ctx, lauf.master, t0 + ev.t / 1000, ev.sym === "-"));
+        });
+      }
+    }
+  }
+  if (k !== "ton"){
+    plan.events.forEach(function(ev){
+      lauf.timer.push(setTimeout(function(){ buehne.an(ev.sym, ev.t / u()); }, VOR + ev.t));
+      lauf.timer.push(setTimeout(function(){ buehne.aus(); }, VOR + ev.t + ev.d));
+    });
+  }
+  lauf.timer.push(setTimeout(function(){
+    buehne.aus(); buehne.status("fertig"); state.lauf = null;
+    if (fertig) fertig();
+  }, VOR + plan.dauer + 200));
+}
+
+/* ---------- gemeinsame Bausteine ---------- */
+function tabelleHTML(){
+  return Object.keys(MORSE).map(function(k){
+    return "<div><b>" + k + "</b><span>" + schoen(MORSE[k]) + "</span></div>";
+  }).join("");
+}
+function vorschau(el, roh){
+  var n = normalisiere(roh), w = zerlege(n.code);
+  if (!w.length){ el.innerHTML = '<span>Noch nichts notiert.</span>'; return n; }
+  var html = "<span>So wird deine Notiz gelesen:</span>";
+  w.forEach(function(wort, i){
+    if (i) html += '<span class="wl" title="Wortlücke">/</span>';
+    wort.forEach(function(b){ html += '<span class="grp">' + schoen(b) + "</span>"; });
+  });
+  var anzahl = flach(n.code).length;
+  html += "<span>= " + anzahl + " Buchstabe" + (anzahl === 1 ? "" : "n") + "</span>";
+  if (n.fehler.length) html += '<span style="color:var(--rot)">ignoriert: ' + esc(n.fehler.join(" ")) + "</span>";
+  el.innerHTML = html;
+  return n;
+}
+function fb(el, art, html){ el.className = "fb" + (art ? " " + art : ""); el.innerHTML = html; }
+
+function baueTastenfelder(){
+  Array.prototype.forEach.call(document.querySelectorAll(".pad[data-ziel]"), function(pad){
+    var ziel = $(pad.dataset.ziel), ohne = pad.dataset.ohneLuecke === "1";
+    var knoepfe = [["·", "·", "Punkt", "sym"], ["—", "—", "Strich", "sym"]];
+    if (!ohne) knoepfe.push(["Lücke", " ", "Lücke zwischen Buchstaben"], ["/ Wort", " / ", "Lücke zwischen Wörtern"]);
+    knoepfe.push(["⌫", "zurueck", "Letztes Zeichen löschen"], ["Leeren", "leeren", "Alles löschen"]);
+    knoepfe.forEach(function(kn){
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = kn[0]; b.setAttribute("aria-label", kn[2]);
+      if (kn[3]) b.className = kn[3];
+      b.addEventListener("click", function(){
+        if (kn[1] === "zurueck") ziel.value = ziel.value.replace(/(\s*\/\s*|\s+|.)$/, "");
+        else if (kn[1] === "leeren") ziel.value = "";
+        else if (kn[1] === " " && /\s$/.test(ziel.value)) return;
+        else ziel.value += kn[1];
+        ziel.dispatchEvent(new Event("input"));
+      });
+      pad.appendChild(b);
+    });
+  });
+}
+
+/* ================= EMPFANGEN ================= */
+function neueNachricht(){
+  stopp();
+  var e = state.e;
+  e.soll = ziehe(DATEN.stufen[state.stufe].liste, e.soll);
+  e.code = zuCode(e.soll).code;
+  e.abgespielt = 0;
+  $("notiz1").value = ""; $("text1").value = "";
+  vorschau($("vorschau1"), "");
+  fb($("fb1"), "", ""); fb($("fb1b"), "", "");
+  buehnen.b1.leeren(); buehnen.b1.status("");
+  $("btnPlay1").textContent = "▶ Abspielen";
+  $("zaehler1").textContent = "Neue Nachricht bereit (" + DATEN.stufen[state.stufe].name + ").";
+}
+function spieleEmpfangen(){
+  var e = state.e;
+  e.abgespielt++;
+  $("btnPlay1").textContent = "▶ Nochmal abspielen";
+  $("zaehler1").textContent = e.abgespielt + "× abgespielt";
+  abspielen(buehnen.b1, e.code);
+}
+function pruefeNotiz1(){
+  var n = normalisiere($("notiz1").value);
+  if (!n.code){ fb($("fb1"), "info", "Notiere zuerst, was du wahrgenommen hast."); return; }
+  var r = vergleicheCode(n.code, state.e.code);
+  if (r.ok){ fb($("fb1"), "ok", "✔ Genau so wurde gesendet! Jetzt übersetzen."); ansage("Richtig notiert."); return; }
+  var html = "✘ Noch nicht ganz. ";
+  if (r.hinweis) html += r.hinweis;
+  else if (r.zeichenOk && !r.woerterOk) html += "Die Buchstaben stimmen – aber schau noch einmal, wo die ganz lange Pause (Wortlücke /) liegt.";
+  var falsch = r.liste.filter(function(x){ return !x.ok; });
+  if (falsch.length && !r.hinweis)
+    html += "<ul>" + falsch.map(function(x){ return "<li>" + x.nr + ". Buchstabe: " + x.grund + "</li>"; }).join("") + "</ul>";
+  html += " Spiel die Nachricht ruhig noch einmal ab.";
+  fb($("fb1"), "nein", html);
+  ansage("Noch nicht richtig.");
+}
+function pruefeText1(){
+  var r = vergleicheText($("text1").value, state.e.soll, normalisiere($("notiz1").value).code);
+  var t = {
+    leer: ["info", "Schreib zuerst deine Übersetzung in das Feld."],
+    richtig: ["ok", "✔ Richtig decodiert: <b>" + esc(state.e.soll) + "</b>"],
+    folgefehler: ["nein", "Deine Übersetzung passt genau zu deiner Notiz – du hast richtig mit der Tabelle gearbeitet. " +
+                  "Der Fehler steckt aber schon beim <b>Aufschreiben</b>. Prüfe zuerst deine Notiz."],
+    falsch: ["nein", "✘ Das ist noch nicht die Nachricht. Übersetze Buchstabe für Buchstabe mit der Tabelle."]
+  }[r.art];
+  fb($("fb1b"), t[0], t[1]);
+  ansage(r.ok ? "Richtig." : "Noch nicht richtig.");
+}
+function loese1(){
+  fb($("fb1b"), "info", 'Gesendet wurde: <span class="c">' + schoen(state.e.code).replace(/ \/ /g, "  /  ") +
+     "</span> = <b>" + esc(state.e.soll) + "</b>");
+}
+
+/* ================= SENDEN ================= */
+function setzeSendewort(w){
+  state.s.soll = w;
+  $("auftrag2").textContent = w;
+  $("notiz2").value = ""; vorschau($("vorschau2"), "");
+  $("empf2").innerHTML = ""; fb($("fb2"), "", "");
+  buehnen.b2.leeren();
+}
+function eigenesWort(){
+  var eingabe = $("eigen2").value.toUpperCase(), roh = umschreiben(eingabe), z = zuCode(roh);
+  if (!z.code){ fb($("fb2"), "info", "Gib zuerst ein Wort ein."); return; }
+  var w = roh.replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+  setzeSendewort(w);
+  var hinweise = [];
+  if (roh !== eingabe) hinweise.push("Ä, Ö, Ü und ß stehen nicht in unserer Tabelle – sie werden als AE, OE, UE und SS gesendet.");
+  if (z.unbekannt.length) hinweise.push("Für " + esc(z.unbekannt.join(" ")) + " gibt es keinen Code – diese Zeichen fallen weg.");
+  if (hinweise.length) fb($("fb2"), "info", hinweise.join(" "));
+}
+function senden(){
+  var n = normalisiere($("notiz2").value);
+  if (!n.code){ fb($("fb2"), "info", "Codiere zuerst das Wort – mit den Knöpfen oder der Morsetaste."); return; }
+  $("empf2").innerHTML = "Der Empfänger nimmt auf …";
+  fb($("fb2"), "", "");
+  abspielen(buehnen.b2, n.code, function(){
+    var gelesen = zuText(n.code), soll = zuCode(state.s.soll).code, r = vergleicheCode(n.code, soll);
+    $("empf2").innerHTML = "Der Empfänger liest: <b>" + esc(gelesen) + "</b>";
+    if (r.ok){ fb($("fb2"), "ok", "✔ Angekommen! Der Empfänger hat genau <b>" + esc(state.s.soll) + "</b> verstanden."); ansage("Angekommen."); return; }
+    var html = "✘ Beim Empfänger kommt etwas anderes an. ";
+    var a = flach(n.code), b = flach(soll);
+    if (!r.zeichenOk && a.join("") === b.join(""))
+      html += "Alle Signale stimmen – aber die Lücken zwischen den Buchstaben sitzen an anderen Stellen. " +
+              "Ohne die richtige Pause liest der Empfänger andere Buchstaben.";
+    else if (!r.zeichenOk && a.length !== b.length)
+      html += "Du hast " + a.length + " Buchstaben gesendet, " + esc(state.s.soll) + " hat aber " + b.length +
+              (a.length < b.length ? ". Fehlt ein Buchstabe – oder eine Lücke?" : ". Ist eine Lücke zu viel dazwischen?");
+    var falsch = r.liste.filter(function(x){ return !x.ok; });
+    if (falsch.length && a.length === b.length && a.join("") !== b.join(""))
+      html += "<ul>" + falsch.map(function(x){
+        var sollB = x.soll ? RUECK[x.soll] : "";
+        return "<li>" + x.nr + ". Buchstabe" + (sollB ? " (" + sollB + " = " + schoen(x.soll) + ")" : "") + ": " +
+          (x.ist ? "du hast " + schoen(x.ist) + " gesendet" + (RUECK[x.ist] ? ", das ist " + RUECK[x.ist] : ", das gibt es nicht") : "fehlt") + "</li>";
+      }).join("") + "</ul>";
+    else if (r.zeichenOk && !r.woerterOk) html += "Die Buchstaben stimmen – aber die Wortlücke / fehlt oder sitzt an der falschen Stelle.";
+    fb($("fb2"), "nein", html);
+    ansage("Nicht richtig angekommen.");
+  });
+}
+
+/* Morsetaste */
+var taste = { druck:0, osc:null, gain:null };
+function tasteRunter(){
+  if (taste.druck) return;
+  stopp();
+  taste.druck = performance.now();
+  $("taste2").classList.add("gedrueckt");
+  if (state.kontext === "licht") buehnen.b2.el.classList.add("an");
+  if (state.kontext === "ton"){
+    var ctx = audio();
+    if (ctx){
+      taste.osc = ctx.createOscillator(); taste.gain = ctx.createGain();
+      taste.osc.frequency.value = 650; taste.gain.gain.setValueAtTime(0, ctx.currentTime);
+      taste.gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.006);
+      taste.osc.connect(taste.gain); taste.gain.connect(ctx.destination); taste.osc.start();
+    }
+  }
+}
+function tasteHoch(){
+  if (!taste.druck) return;
+  var dauer = performance.now() - taste.druck, sym = dauer < DATEN.tasteSchwelle ? "." : "-";
+  taste.druck = 0;
+  $("taste2").classList.remove("gedrueckt");
+  buehnen.b2.aus();
+  if (taste.osc){
+    var ctx = audio(), t = ctx.currentTime;
+    taste.gain.gain.setValueAtTime(0.3, t); taste.gain.gain.linearRampToValueAtTime(0, t + 0.01);
+    taste.osc.stop(t + 0.02); taste.osc = null;
+  }
+  if (state.kontext === "klopfen"){ var c = audio(); if (c) klopfer(c, c.destination, c.currentTime + 0.01, sym === "-"); buehnen.b2.an(sym); }
+  if (state.kontext === "streifen") buehnen.b2.an(sym);
+  var z = $("notiz2");
+  z.value += schoen(sym);
+  vorschau($("vorschau2"), z.value);
+}
+
+/* ================= MORSEBAUM ================= */
+var KNOTEN = baumKnoten();
+function quer(){ var c = $("baumSvg").parentNode; return c.clientWidth > 0 && c.clientWidth < 520; }
+function zeichneBaum(){
+  var svg = $("baumSvg"), q = quer(), L = baumLayout(KNOTEN, q), b = state.b, teil = state.teil;
+  svg.setAttribute("viewBox", "0 0 " + L.W + " " + L.H);
+  var weg = teil === "wandern" ? b.weg : (teil === "fuellen" && b.auswahl !== null ? b.auswahl : "");
+  var r = q ? 15 : 17, html = "";
+  KNOTEN.forEach(function(n, i){
+    if (!n.tiefe) return;
+    var eltern = KNOTEN.findIndex(function(m){ return m.pfad === n.pfad.slice(0, -1); });
+    var a = L.pos[eltern], z = L.pos[i], sym = n.pfad.slice(-1);
+    var aufWeg = weg.indexOf(n.pfad) === 0;
+    html += '<line class="kante ' + (sym === "." ? "p" : "s") + (aufWeg ? " weg" : "") + '" x1="' + a.x + '" y1="' + a.y +
+            '" x2="' + z.x + '" y2="' + z.y + '"/>';
+  });
+  KNOTEN.forEach(function(n, i){
+    var p = L.pos[i], kl = "kn", txt = n.zeichen, label;
+    if (!n.tiefe) kl += " wurzel";
+    if (n.frei) kl += " frei";
+    if (teil === "fuellen" && n.tiefe && !n.frei && !b.gefuellt[n.pfad]){ kl += " verdeckt"; txt = ""; }
+    if (weg && weg.indexOf(n.pfad) === 0) kl += " weg";
+    if (teil === "wandern" && n.pfad === b.weg) kl += " aktuell";
+    if (teil === "fuellen" && n.pfad === b.auswahl) kl += " gewaehlt";
+    if (teil === "fuellen" && n.pfad === b.neu) kl += " neu";
+    label = n.tiefe ? "Platz " + schoen(n.pfad) + (txt ? ", " + txt : ", leer") : "Start";
+    var rr = n.tiefe ? r : r + 6;
+    html += '<g class="' + kl + '" data-pfad="' + n.pfad + '" tabindex="' + (teil === "pause" ? -1 : 0) +
+            '" role="button" aria-label="' + esc(label) + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="' + rr +
+            '"/><text x="' + p.x + '" y="' + p.y + '" font-size="' + (n.tiefe ? (n.frei ? 11 : 16) : 12) + '">' + esc(txt) + "</text></g>";
+  });
+  svg.innerHTML = html;
+  $("legende").innerHTML = '<span><i style="border-color:var(--punkt);border-top-style:dotted"></i>· = ' +
+    (q ? "nach oben" : "nach links") + '</span><span><i style="border-color:var(--strich)"></i>— = ' +
+    (q ? "nach unten" : "nach rechts") + "</span>";
+}
+
+/* Wandern */
+function neueBaumAufgabe(){
+  stopp();
+  var b = state.b;
+  b.ziel = ziehe(BUCHSTABEN, b.ziel);
+  b.weg = "";
+  fb($("fb3"), "", "");
+  zeigeBaumAufgabe(); zeichneBaum(); zeigeWeg();
+}
+function zeigeBaumAufgabe(){
+  var b = state.b;
+  $("baumAufgabe").innerHTML = b.richtung === "code"
+    ? "Folge dem Weg <b>" + schoen(MORSE[b.ziel]) + "</b> und halte an. Welcher Buchstabe ist das?"
+    : "Suche den Buchstaben <b>" + b.ziel + "</b> und laufe vom Start dorthin. Dein Weg ist sein Code.";
+  $("btnPlay3").hidden = b.richtung !== "code";
+  $("buehne3").hidden = b.richtung !== "code";
+}
+function zeigeWeg(){
+  var w = state.b.weg, z = w ? (buchstabeAm(w) || (FREI[w] ? "freier Platz" : "–")) : "Start";
+  $("weganz").innerHTML = "Dein Weg: <b>" + (w ? schoen(w) : "–") + "</b> &nbsp;→ du stehst bei <b>" + esc(z) + "</b>";
+}
+function schritt(sym){
+  var b = state.b;
+  if (state.teil !== "wandern") return;
+  if (b.weg.length >= 4){ fb($("fb3"), "info", "Der Baum hat nur 4 Ebenen – hier geht es nicht weiter."); return; }
+  b.weg += sym; fb($("fb3"), "", "");
+  zeichneBaum(); zeigeWeg();
+  ansage((sym === "." ? "Punkt" : "Strich") + ", " + (buchstabeAm(b.weg) || "leerer Platz"));
+}
+function wegZurueck(){ state.b.weg = state.b.weg.slice(0, -1); zeichneBaum(); zeigeWeg(); }
+function anhalten(){
+  var b = state.b, soll = MORSE[b.ziel];
+  if (!b.weg){ fb($("fb3"), "info", "Du stehst noch am Start – mach zuerst einen Schritt."); return; }
+  var r = vergleicheWeg(b.weg, soll), hier = buchstabeAm(b.weg) || "einem leeren Platz";
+  if (r.ok)
+    fb($("fb3"), "ok", b.richtung === "code"
+      ? "✔ Richtig: <b>" + schoen(soll) + "</b> ist <b>" + b.ziel + "</b>."
+      : "✔ Richtig: <b>" + b.ziel + "</b> hat den Code <b>" + schoen(soll) + "</b> – genau dein Weg.");
+  else fb($("fb3"), "nein", "✘ Du bist bei " + hier + " gelandet. " + r.grund);
+  ansage(r.ok ? "Richtig." : "Noch nicht richtig.");
+}
+
+/* Füllen */
+function fuellStart(alle){
+  var g = {};
+  KNOTEN.forEach(function(n){ if (!n.frei && n.tiefe && (alle || n.tiefe === 1)) g[n.pfad] = true; });
+  state.b.gefuellt = g; state.b.auswahl = null; state.b.neu = "";
+  $("fuellIn").value = ""; $("fuellIn").disabled = true;
+  $("fuellAufgabe").textContent = "Wähle einen leeren Platz im Baum.";
+  fb($("fb4"), "", ""); fuellStand(); zeichneBaum();
+}
+function fuellStand(){
+  var n = Object.keys(state.b.gefuellt).length;
+  $("fuellStand").textContent = n + " von 26 Buchstaben stehen im Baum.";
+  if (n === 26) fb($("fb4"), "ok", "✔ Der Baum ist komplett! Schau ihn dir an: Wo stehen die Buchstaben mit kurzen Codes, " +
+                 "wo die mit langen? Unten findest du Fragen zum Entdecken.");
+}
+function waehle(pfad){
+  var b = state.b, n = KNOTEN.find(function(k){ return k.pfad === pfad; });
+  if (!n || !n.tiefe) return;
+  if (n.frei){
+    b.auswahl = pfad; zeichneBaum();
+    fb($("fb4"), "info", "Den Code <b>" + schoen(pfad) + "</b> gibt es im Alphabet A–Z nicht – dieser Platz bleibt frei. " +
+       "Im deutschen Morsealphabet steht hier " + FREI[pfad] + ".");
+    $("fuellIn").disabled = true; return;
+  }
+  if (b.gefuellt[pfad]){ b.auswahl = pfad; zeichneBaum(); fb($("fb4"), "info", "Hier steht schon " + n.zeichen + " (" + schoen(pfad) + ")."); $("fuellIn").disabled = true; return; }
+  b.auswahl = pfad; b.neu = "";
+  $("fuellAufgabe").innerHTML = "Der Weg zu diesem Platz ist <b>" + schoen(pfad) + "</b>. Welcher Buchstabe hat diesen Code?";
+  $("fuellIn").disabled = false; $("fuellIn").value = ""; $("fuellIn").focus();
+  fb($("fb4"), "", ""); zeichneBaum();
+}
+function eintragen(){
+  var b = state.b, z = $("fuellIn").value.toUpperCase().trim();
+  if (b.auswahl === null || $("fuellIn").disabled) return;
+  if (!z){ fb($("fb4"), "info", "Trage einen Buchstaben ein."); return; }
+  if (RUECK[b.auswahl] === z){
+    b.gefuellt[b.auswahl] = true; b.neu = b.auswahl; b.auswahl = null;
+    $("fuellIn").disabled = true; $("fuellIn").value = "";
+    $("fuellAufgabe").textContent = "Wähle den nächsten leeren Platz.";
+    fb($("fb4"), "ok", "✔ Richtig: " + z + " = " + schoen(MORSE[z]) + ".");
+    ansage("Richtig."); zeichneBaum(); fuellStand();
+  } else {
+    var grund = MORSE[z] ? z + " hat den Code <b>" + schoen(MORSE[z]) + "</b>" + (MORSE[z].length !== b.auswahl.length
+      ? " – das sind " + MORSE[z].length + " Signale, dieser Platz liegt aber auf Ebene " + b.auswahl.length + "."
+      : ", gesucht ist <b>" + schoen(b.auswahl) + "</b>.") : "Das ist kein Buchstabe aus der Tabelle.";
+    fb($("fb4"), "nein", "✘ Nein. " + grund);
+    ansage("Nicht richtig.");
+  }
+}
+
+/* Ohne Pause */
+function zeigeZerlegungen(){
+  var roh = normalisiere($("pauseIn").value).code.replace(/[\s\/]/g, "");
+  var liste = $("zerlListe");
+  if (!roh){ fb($("fb5"), "", ""); liste.hidden = true; return; }
+  if (roh.length > 16){ fb($("fb5"), "info", "Bitte höchstens 16 Signale."); liste.hidden = true; return; }
+  var z = zerlegungen(roh, 60);
+  if (!z.anzahl){ fb($("fb5"), "nein", "Diese Folge lässt sich mit A–Z gar nicht lesen."); liste.hidden = true; return; }
+  fb($("fb5"), z.anzahl > 1 ? "nein" : "ok", '<span class="c">' + schoen(roh) + "</span> kann man auf <b>" + z.anzahl +
+     "</b> Art" + (z.anzahl > 1 ? "en" : "") + " lesen" + (z.anzahl > z.liste.length ? " (die ersten " + z.liste.length + " stehen unten)" : "") + ".");
+  liste.innerHTML = z.liste.map(function(t){
+    return '<li><span class="c">' + t.map(schoen).join(" | ") + '</span><span class="w">' +
+      t.map(function(p){ return buchstabeAm(p); }).join("") + "</span></li>";
+  }).join("");
+  liste.hidden = false;
+}
+
+/* ================= Modus & Aufbau ================= */
+function setzeModus(m, teil){
+  stopp();
+  state.modus = m;
+  if (teil) state.teil = teil;
+  var M = MODI[m];
+  $("titel").textContent = M.titel; $("untertitel").textContent = M.untertitel;
+  $("badge").textContent = M.badge; $("vorgehen").innerHTML = M.vorgehen;
+  Object.keys(MODI).forEach(function(k){ $("s-" + k).hidden = k !== m; });
+  Array.prototype.forEach.call($("tabs").children, function(b){ b.setAttribute("aria-pressed", b.dataset.m === m); });
+  Array.prototype.forEach.call($("subtabs").children, function(b){ b.setAttribute("aria-pressed", b.dataset.t === state.teil); });
+  ["wandern","fuellen","pause"].forEach(function(t){ $("p-" + t).hidden = t !== state.teil; });
+  var brauchtKontext = m !== "baum" || (state.teil === "wandern" && state.b.richtung === "code");
+  $("kontextbar").hidden = !brauchtKontext; $("kontexthinweis").hidden = !brauchtKontext;
+  var hash = m === "baum" && state.teil !== "wandern" ? "baum-" + state.teil : m;
+  if (location.hash.slice(1) !== hash) history.replaceState(null, "", "#" + hash);
+  if (m === "baum") zeichneBaum();
+}
+function setzeKontext(k){
+  stopp();
+  state.kontext = k;
+  Array.prototype.forEach.call($("kontextwahl").children, function(b){ b.setAttribute("aria-pressed", b.dataset.k === k); });
+  $("kontexthinweis").textContent = DATEN.kontexte[k].hinweis;
+  Object.keys(buehnen).forEach(function(n){ buehnen[n].aufbauen(); });
+}
+function knopf(eltern, text, daten, klick){
+  var b = document.createElement("button");
+  b.type = "button"; b.textContent = text;
+  Object.keys(daten).forEach(function(k){ b.dataset[k] = daten[k]; });
+  b.addEventListener("click", klick); eltern.appendChild(b); return b;
+}
+
+function init(){
+  Object.keys(MODI).forEach(function(m){ knopf($("tabs"), MODI[m].tab, { m:m }, function(){ setzeModus(m); }); });
+  Object.keys(BAUMTEILE).forEach(function(t){ knopf($("subtabs"), BAUMTEILE[t], { t:t }, function(){ setzeModus("baum", t); }); });
+  Object.keys(DATEN.kontexte).forEach(function(k){ knopf($("kontextwahl"), DATEN.kontexte[k].name, { k:k }, function(){ setzeKontext(k); }); });
+  Object.keys(DATEN.tempi).forEach(function(t){
+    var o = document.createElement("option"); o.value = t; o.textContent = DATEN.tempi[t].name; $("tempo").appendChild(o);
+  });
+  $("tempo").value = state.tempo;
+  $("tempo").addEventListener("change", function(){ stopp(); state.tempo = this.value; });
+  Object.keys(DATEN.stufen).forEach(function(s){
+    knopf($("stufenwahl"), DATEN.stufen[s].name, { s:s }, function(){
+      state.stufe = s;
+      Array.prototype.forEach.call($("stufenwahl").children, function(b){ b.setAttribute("aria-pressed", b.dataset.s === s); });
+      neueNachricht();
+    }).setAttribute("aria-pressed", s === state.stufe);
+  });
+  knopf($("richtungwahl"), "Code → Buchstabe", { r:"code" }, function(){ setzeRichtung("code"); });
+  knopf($("richtungwahl"), "Buchstabe → Code", { r:"buchstabe" }, function(){ setzeRichtung("buchstabe"); });
+  DATEN.pauseVorlagen.forEach(function(v){
+    knopf($("pauseVorlagen"), v.name, {}, function(){ $("pauseIn").value = schoen(v.code); zeigeZerlegungen(); });
+  });
+  $("entdecken").innerHTML = "<h2 style=\"font-size:15px;color:var(--haupt)\">Entdecken am Morsebaum</h2>" +
+    DATEN.entdecken.map(function(e){ return "<details><summary>" + esc(e.frage) + "</summary><p>" + esc(e.antwort) + "</p></details>"; }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll(".tabelle"), function(t){ t.innerHTML = tabelleHTML(); });
+  baueTastenfelder();
+
+  buehnen.b1 = new Buehne($("buehne1")); buehnen.b2 = new Buehne($("buehne2")); buehnen.b3 = new Buehne($("buehne3"));
+
+  $("btnPlay1").addEventListener("click", spieleEmpfangen);
+  $("btnStopp1").addEventListener("click", stopp);
+  $("btnNeu1").addEventListener("click", neueNachricht);
+  $("notiz1").addEventListener("input", function(){ vorschau($("vorschau1"), this.value); });
+  $("btnPruef1").addEventListener("click", pruefeNotiz1);
+  $("btnPruefText1").addEventListener("click", pruefeText1);
+  $("text1").addEventListener("keydown", function(ev){ if (ev.key === "Enter") pruefeText1(); });
+  $("btnLoes1").addEventListener("click", loese1);
+
+  $("btnNeu2").addEventListener("click", function(){ setzeSendewort(ziehe(DATEN.sendeWoerter, state.s.soll)); });
+  $("btnEigen2").addEventListener("click", eigenesWort);
+  $("eigen2").addEventListener("keydown", function(ev){ if (ev.key === "Enter") eigenesWort(); });
+  $("notiz2").addEventListener("input", function(){ vorschau($("vorschau2"), this.value); });
+  $("btnSend2").addEventListener("click", senden);
+  $("btnStopp2").addEventListener("click", stopp);
+  var t = $("taste2");
+  t.addEventListener("pointerdown", function(ev){ ev.preventDefault(); try { t.setPointerCapture(ev.pointerId); } catch(e){} tasteRunter(); });
+  t.addEventListener("pointerup", tasteHoch);
+  t.addEventListener("pointercancel", tasteHoch);
+  t.addEventListener("contextmenu", function(ev){ ev.preventDefault(); });
+  t.addEventListener("keydown", function(ev){ if ((ev.key === " " || ev.key === "Enter") && !ev.repeat){ ev.preventDefault(); tasteRunter(); } else if (ev.key === " " || ev.key === "Enter") ev.preventDefault(); });
+  t.addEventListener("keyup", function(ev){ if (ev.key === " " || ev.key === "Enter"){ ev.preventDefault(); tasteHoch(); } });
+  t.addEventListener("click", function(ev){ ev.preventDefault(); });
+
+  $("btnWegP").addEventListener("click", function(){ schritt("."); });
+  $("btnWegS").addEventListener("click", function(){ schritt("-"); });
+  $("btnWegZurueck").addEventListener("click", wegZurueck);
+  $("btnWegStart").addEventListener("click", function(){ state.b.weg = ""; zeichneBaum(); zeigeWeg(); });
+  $("btnStoppHier").addEventListener("click", anhalten);
+  $("btnNeu3").addEventListener("click", neueBaumAufgabe);
+  $("btnPlay3").addEventListener("click", function(){ abspielen(buehnen.b3, MORSE[state.b.ziel]); });
+  $("btnFuell").addEventListener("click", eintragen);
+  $("fuellIn").addEventListener("keydown", function(ev){ if (ev.key === "Enter") eintragen(); });
+  $("btnFuellAlle").addEventListener("click", function(){ fuellStart(true); });
+  $("btnFuellNeu").addEventListener("click", function(){ fuellStart(false); });
+  $("pauseIn").addEventListener("input", zeigeZerlegungen);
+
+  $("baumSvg").addEventListener("click", function(ev){
+    var g = ev.target.closest ? ev.target.closest(".kn") : null;
+    if (g) knotenGewaehlt(g.dataset.pfad);
+  });
+  $("baumSvg").addEventListener("keydown", function(ev){
+    var g = ev.target.closest ? ev.target.closest(".kn") : null;
+    if (g && (ev.key === "Enter" || ev.key === " ")){ ev.preventDefault(); ev.stopPropagation(); knotenGewaehlt(g.dataset.pfad); }
+  });
+  document.addEventListener("keydown", function(ev){
+    if (state.modus !== "baum" || state.teil !== "wandern") return;
+    var tag = (ev.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "select" || tag === "textarea") return;
+    if (ev.key === "." ) { ev.preventDefault(); schritt("."); }
+    else if (ev.key === "-") { ev.preventDefault(); schritt("-"); }
+    else if (ev.key === "Backspace") { ev.preventDefault(); wegZurueck(); }
+    else if (ev.key === "Enter" && tag !== "button") { ev.preventDefault(); anhalten(); }
+  });
+  var rt; window.addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(function(){ if (state.modus === "baum") zeichneBaum(); }, 120); });
+  window.addEventListener("hashchange", ausHash);
+
+  setzeKontext("ton");
+  neueNachricht();
+  setzeSendewort(DATEN.sendeWoerter[0]);
+  state.b.ziel = ""; neueBaumAufgabe();
+  setzeRichtung("code", true);
+  fuellStart(false);
+  vorschau($("vorschau2"), "");
+  ausHash();
+}
+function knotenGewaehlt(pfad){
+  if (state.teil === "fuellen") waehle(pfad);
+  else if (state.teil === "wandern"){
+    var w = state.b.weg;
+    if (pfad === "") { state.b.weg = ""; zeichneBaum(); zeigeWeg(); }
+    else if (pfad.length === w.length + 1 && pfad.indexOf(w) === 0) schritt(pfad.slice(-1));
+  }
+}
+function setzeRichtung(r, still){
+  state.b.richtung = r;
+  Array.prototype.forEach.call($("richtungwahl").children, function(b){ b.setAttribute("aria-pressed", b.dataset.r === r); });
+  if (!still) neueBaumAufgabe(); else zeigeBaumAufgabe();
+  if (state.modus === "baum") setzeModus("baum");
+}
+function ausHash(){
+  var h = location.hash.replace("#", "").split("-");
+  var m = MODI[h[0]] ? h[0] : "empfangen";
+  var t = BAUMTEILE[h[1]] ? h[1] : "wandern";
+  setzeModus(m, m === "baum" ? t : null);
+}
+init();
+</script>
+</body>
+</html>
