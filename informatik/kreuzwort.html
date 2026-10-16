@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kreuzworträtsel</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+    --zelle:34px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.45;}
+  .wrap{max-width:1100px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:14px 18px;}
+  header.top h1{font-size:19px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:13.5px; opacity:.92;}
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0;}
+  .tabs button,.knopf{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:14px;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt); min-height:40px;}
+  .tabs button[aria-pressed=true]{background:var(--haupt); color:#fff; border-color:var(--haupt); font-weight:700;}
+  .knopf.primaer{background:var(--haupt); color:#fff; border-color:var(--haupt);}
+  button:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+  .layout{display:grid; grid-template-columns:minmax(0, auto) minmax(220px, 1fr); gap:22px; margin-top:16px; align-items:start;}
+  .layout > div{min-width:0;}
+  .gitterbox{overflow-x:auto; padding-bottom:6px; max-width:100%;}
+  .gitter{display:grid; gap:0; width:max-content;}
+  .z{width:var(--zelle); height:var(--zelle); position:relative;}
+  .z.aktiv{border:1px solid #333; margin:-0.5px; background:#fff;}
+  .z input{width:100%; height:100%; border:0; text-align:center; font-size:18px; font-weight:600;
+    text-transform:uppercase; background:transparent; padding:0; color:var(--text); caret-color:transparent;}
+  .z input:focus{outline:none; background:#fff4d6;}
+  .z.markiert input{background:var(--hell);}
+  .z.falsch input{background:var(--rothell); color:var(--rot);}
+  .z.richtig input{background:var(--gruenhell);}
+  .z .nr{position:absolute; top:1px; left:2px; font-size:9px; color:var(--textgrau); pointer-events:none;}
+  .hinweise h2{font-size:13px; color:var(--haupt); margin:0 0 6px; text-transform:uppercase; letter-spacing:.02em;}
+  .hinweise ol{margin:0 0 16px; padding-left:0; list-style:none; font-size:14.5px;}
+  .hinweise li{padding:3px 6px; border-radius:4px; cursor:pointer;}
+  .hinweise li.aktiv{background:var(--hell);}
+  .hinweise li b{display:inline-block; min-width:26px; color:var(--haupt);}
+  .leiste{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0;}
+  .rueck{padding:10px 14px; border-radius:6px; background:var(--hell); font-size:14px;}
+  .rueck.ok{background:var(--gruenhell); color:var(--gruen); font-weight:700;}
+  .rueck.fehler{background:var(--rothell); color:var(--rot);}
+  .hinweisumlaut{font-size:13px; color:var(--textgrau); margin-top:6px;}
+  footer{margin-top:24px; font-size:12px; color:var(--textgrau);}
+  @media (max-width:760px){ .layout{grid-template-columns:minmax(0, 1fr);} :root{--zelle:28px;} .z input{font-size:15px;} }
+  @media print{
+    body{background:#fff; padding:0;}
+    .tabs,.leiste,.rueck,footer,header.top p{display:none !important;}
+    header.top{background:#fff; color:#000; padding:0;}
+    .z input{color:transparent !important; background:#fff !important;}
+    .layout{grid-template-columns:auto 1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="titel">Kreuzworträtsel</h1>
+    <p>Tippe auf ein Kästchen und schreib los. Ein zweites Tippen auf dasselbe Kästchen wechselt zwischen waagerecht und senkrecht.</p>
+  </header>
+  <div class="tabs" id="tabs" role="group" aria-label="Datensatz wählen"></div>
+  <div class="layout">
+    <div>
+      <div class="gitterbox"><div class="gitter" id="gitter"></div></div>
+      <p class="hinweisumlaut">Ä, Ö, Ü als AE, OE, UE und ß als SS schreiben.</p>
+    </div>
+    <div class="hinweise">
+      <h2>Waagerecht</h2><ol id="waag"></ol>
+      <h2>Senkrecht</h2><ol id="senk"></ol>
+    </div>
+  </div>
+  <div class="leiste">
+    <button class="knopf primaer" id="btnPruefen" type="button">Prüfen</button>
+    <button class="knopf" id="btnBuchstabe" type="button">Buchstaben aufdecken</button>
+    <button class="knopf" id="btnLoesung" type="button">Lösung zeigen</button>
+    <button class="knopf" id="btnLeeren" type="button">Leeren</button>
+    <button class="knopf" id="btnDruck" type="button">Drucken</button>
+  </div>
+  <div class="rueck" id="rueck" aria-live="polite">Wähle ein Kästchen oder einen Hinweis.</div>
+  <footer>Interaktives Begleitmaterial · Kreuzworträtsel · Datensatz per Anker in der Adresse wählbar (#name)</footer>
+</div>
+<script>
+"use strict";
+/* ============================================================
+   DATEN: je Satz eine Liste {w: Lösungswort, h: Hinweis}. Das Raster
+   wird beim Laden erzeugt (deterministisch, gleiche Liste = gleiches Raster).
+   ============================================================ */
+var SAETZE = {
+  "if6-begriffe": {
+    tab: "Daten und Codierung", titel: "Kreuzworträtsel: Daten und ihre Codierung",
+    woerter: [
+      { w: "Bit", h: "Kleinste Dateneinheit, kann 0 oder 1 sein" },
+      { w: "Byte", h: "8 Bit zusammen" },
+      { w: "Pixel", h: "Ein einzelner Bildpunkt" },
+      { w: "Codieren", h: "Information nach einer Vorschrift in Zeichen übersetzen" },
+      { w: "Decodieren", h: "Zeichen mit der Vorschrift zurück in Information übersetzen" },
+      { w: "Binaersystem", h: "Zahlensystem mit nur zwei Ziffern" },
+      { w: "Morsecode", h: "Codierung aus kurzen und langen Signalen" },
+      { w: "Pause", h: "Trennt bei Morse die Buchstaben voneinander" },
+      { w: "Grauwert", h: "Zahl von 0 bis 255 für die Helligkeit eines Bildpunkts" },
+      { w: "Information", h: "Entsteht erst, wenn man weiß, wie Daten zu deuten sind" },
+      { w: "Vereinbarung", h: "Legt fest, wie eine Bitfolge gelesen wird" },
+      { w: "ASCII", h: "Codetabelle für Buchstaben und Zeichen" },
+    ],
+  },
+};
+
+function norm(w){ return w.toUpperCase().replace(/Ä/g,"AE").replace(/Ö/g,"OE").replace(/Ü/g,"UE").replace(/ß/g,"SS").replace(/[^A-Z]/g,""); }
+function el(id){ return document.getElementById(id); }
+
+/* ---------- Raster erzeugen ---------- */
+function erzeuge(woerter){
+  var liste = woerter.map(function(x, i){ return { w: norm(x.w), h: x.h, i: i }; })
+                     .sort(function(a, b){ return b.w.length - a.w.length || a.i - b.i; });
+  var zellen = {}; // "r,c" -> Buchstabe
+  var gesetzt = [];
+  function hol(r, c){ return zellen[r + "," + c]; }
+  function passt(w, r, c, dr, dc){
+    var kreuz = 0;
+    if (hol(r - dr, c - dc) || hol(r + dr * w.length, c + dc * w.length)) return -1;
+    for (var k = 0; k < w.length; k++){
+      var rr = r + dr * k, cc = c + dc * k, vorh = hol(rr, cc);
+      if (vorh){ if (vorh !== w[k]) return -1; kreuz++; continue; }
+      // Nachbarn quer zur Schreibrichtung müssen frei sein
+      if (hol(rr + dc, cc + dr) || hol(rr - dc, cc - dr)) return -1;
+    }
+    return kreuz;
+  }
+  var box = { r0: 0, r1: 0, c0: 0, c1: 0 };
+  function setze(o, r, c, dr, dc){
+    for (var k = 0; k < o.w.length; k++) zellen[(r + dr * k) + "," + (c + dc * k)] = o.w[k];
+    box.r0 = Math.min(box.r0, r); box.c0 = Math.min(box.c0, c);
+    box.r1 = Math.max(box.r1, r + dr * (o.w.length - 1)); box.c1 = Math.max(box.c1, c + dc * (o.w.length - 1));
+    gesetzt.push({ w: o.w, h: o.h, r: r, c: c, dir: dr ? "s" : "w" });
+  }
+  var nicht = [];
+  liste.forEach(function(o, idx){
+    if (idx === 0){ setze(o, 0, 0, 0, 1); return; }
+    var best = null;
+    gesetzt.forEach(function(g){
+      for (var a = 0; a < g.w.length; a++){
+        for (var b = 0; b < o.w.length; b++){
+          if (g.w[a] !== o.w[b]) continue;
+          var gr = g.r + (g.dir === "s" ? a : 0), gc = g.c + (g.dir === "w" ? a : 0);
+          var dr = g.dir === "w" ? 1 : 0, dc = g.dir === "w" ? 0 : 1;
+          var r = gr - dr * b, c = gc - dc * b;
+          var k = passt(o.w, r, c, dr, dc);
+          if (k > 0){
+            // kompakt bevorzugen: Fläche und Seitenverhältnis des Rasters nach dem Einsetzen
+            var r2 = r + dr * (o.w.length - 1), c2 = c + dc * (o.w.length - 1);
+            var h = Math.max(box.r1, r2) - Math.min(box.r0, r) + 1, b2 = Math.max(box.c1, c2) - Math.min(box.c0, c) + 1;
+            var wert = k * 40 - h * b2 - Math.abs(h - b2) * 3;
+            if (!best || wert > best.wert) best = { r: r, c: c, dr: dr, dc: dc, wert: wert };
+          }
+        }
+      }
+    });
+    if (best) setze(o, best.r, best.c, best.dr, best.dc); else nicht.push(o);
+  });
+  // Normieren auf 0..n
+  var minR = Infinity, minC = Infinity, maxR = -Infinity, maxC = -Infinity;
+  Object.keys(zellen).forEach(function(k){ var p = k.split(",").map(Number); minR = Math.min(minR, p[0]); minC = Math.min(minC, p[1]); maxR = Math.max(maxR, p[0]); maxC = Math.max(maxC, p[1]); });
+  gesetzt.forEach(function(g){ g.r -= minR; g.c -= minC; });
+  // Nummern vergeben (Leserichtung)
+  gesetzt.sort(function(a, b){ return a.r - b.r || a.c - b.c; });
+  var nr = 0, nrVon = {};
+  gesetzt.forEach(function(g){ var k = g.r + "," + g.c; if (!nrVon[k]) nrVon[k] = ++nr; g.nr = nrVon[k]; });
+  return { woerter: gesetzt, zeilen: maxR - minR + 1, spalten: maxC - minC + 1, nicht: nicht };
+}
+
+/* ---------- Darstellung und Bedienung ---------- */
+var R = null, eingabe = {}, richtung = "w", aktivWort = null;
+
+function zellenVon(g){ var z = []; for (var k = 0; k < g.w.length; k++) z.push((g.r + (g.dir === "s" ? k : 0)) + "," + (g.c + (g.dir === "w" ? k : 0))); return z; }
+
+function baue(){
+  var git = el("gitter"); git.innerHTML = "";
+  git.style.gridTemplateColumns = "repeat(" + R.spalten + ", var(--zelle))";
+  var loesung = {}, nummer = {};
+  R.woerter.forEach(function(g){ zellenVon(g).forEach(function(k, i){ loesung[k] = g.w[i]; }); nummer[g.r + "," + g.c] = g.nr; });
+  R.loesung = loesung;
+  for (var r = 0; r < R.zeilen; r++){
+    for (var c = 0; c < R.spalten; c++){
+      var k = r + "," + c, d = document.createElement("div");
+      d.className = "z"; d.dataset.k = k;
+      if (loesung[k]){
+        d.classList.add("aktiv");
+        if (nummer[k]){ var n = document.createElement("span"); n.className = "nr"; n.textContent = nummer[k]; d.append(n); }
+        var inp = document.createElement("input");
+        inp.maxLength = 1; inp.autocomplete = "off"; inp.setAttribute("autocapitalize", "characters");
+        inp.setAttribute("aria-label", "Kästchen Zeile " + (r + 1) + ", Spalte " + (c + 1));
+        inp.value = eingabe[k] || "";
+        (function(k){
+          inp.addEventListener("focus", function(){ waehleZelle(k, false); });
+          inp.addEventListener("click", function(){ waehleZelle(k, true); });
+          inp.addEventListener("keydown", function(e){ taste(e, k); });
+          inp.addEventListener("input", function(e){ tippe(e, k); });
+        })(k);
+        d.append(inp);
+      }
+      git.append(d);
+    }
+  }
+  ["waag", "senk"].forEach(function(id){ el(id).innerHTML = ""; });
+  R.woerter.forEach(function(g){
+    var li = document.createElement("li");
+    li.innerHTML = "<b>" + g.nr + "</b> ";
+    li.append(document.createTextNode(g.h + " (" + g.w.length + ")"));
+    li.addEventListener("click", function(){ aktivWort = g; richtung = g.dir; fokus(zellenVon(g)[0]); markiere(); });
+    g.li = li;
+    el(g.dir === "w" ? "waag" : "senk").append(li);
+  });
+  if (R.nicht.length) el("rueck").textContent = "Hinweis: " + R.nicht.length + " Wort/Wörter passten nicht ins Raster und fehlen.";
+}
+
+function input(k){ var d = document.querySelector('.z[data-k="' + k + '"] input'); return d; }
+function fokus(k){ var i = input(k); if (i) i.focus(); }
+function woerterIn(k){ return R.woerter.filter(function(g){ return zellenVon(g).indexOf(k) >= 0; }); }
+
+function waehleZelle(k, klick){
+  var ws = woerterIn(k);
+  if (klick && aktivWort && ws.length > 1 && zellenVon(aktivWort).indexOf(k) >= 0) richtung = richtung === "w" ? "s" : "w";
+  aktivWort = ws.filter(function(g){ return g.dir === richtung; })[0] || ws[0];
+  if (aktivWort) richtung = aktivWort.dir;
+  markiere();
+}
+function markiere(){
+  document.querySelectorAll(".z.markiert").forEach(function(d){ d.classList.remove("markiert"); });
+  R.woerter.forEach(function(g){ g.li.classList.remove("aktiv"); });
+  if (!aktivWort) return;
+  zellenVon(aktivWort).forEach(function(k){ document.querySelector('.z[data-k="' + k + '"]').classList.add("markiert"); });
+  aktivWort.li.classList.add("aktiv");
+  el("rueck").className = "rueck"; el("rueck").textContent = aktivWort.nr + " " + (aktivWort.dir === "w" ? "waagerecht" : "senkrecht") + ": " + aktivWort.h;
+}
+function nachbar(k, schritt){
+  if (!aktivWort) return null;
+  var z = zellenVon(aktivWort), i = z.indexOf(k) + schritt;
+  return i >= 0 && i < z.length ? z[i] : null;
+}
+function tippe(e, k){
+  var v = norm(e.target.value).slice(-1);
+  e.target.value = v; eingabe[k] = v;
+  e.target.parentElement.classList.remove("falsch", "richtig");
+  if (v){ var n = nachbar(k, 1); if (n) fokus(n); }
+}
+function taste(e, k){
+  if (e.key === "Backspace" && !e.target.value){ var p = nachbar(k, -1); if (p){ e.preventDefault(); fokus(p); var i = input(p); i.value = ""; eingabe[p] = ""; } }
+  var pfeile = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] };
+  if (pfeile[e.key]){
+    e.preventDefault();
+    var p2 = k.split(",").map(Number), d = pfeile[e.key], r = p2[0] + d[0], c = p2[1] + d[1];
+    while (r >= 0 && c >= 0 && r < R.zeilen && c < R.spalten){ var kk = r + "," + c; if (R.loesung[kk]){ richtung = d[0] ? "s" : "w"; fokus(kk); waehleZelle(kk, false); return; } r += d[0]; c += d[1]; }
+  }
+}
+
+function pruefen(){
+  var falsch = 0, leer = 0;
+  Object.keys(R.loesung).forEach(function(k){
+    var d = document.querySelector('.z[data-k="' + k + '"]'), v = eingabe[k] || "";
+    d.classList.remove("falsch", "richtig");
+    if (!v) { leer++; return; }
+    if (v === R.loesung[k]) d.classList.add("richtig"); else { d.classList.add("falsch"); falsch++; }
+  });
+  var r = el("rueck");
+  if (!falsch && !leer){ r.className = "rueck ok"; r.textContent = "Alles richtig gelöst!"; }
+  else if (!falsch){ r.className = "rueck"; r.textContent = "Bisher alles richtig. Noch " + leer + " Kästchen frei."; }
+  else { r.className = "rueck fehler"; r.textContent = falsch + " Buchstabe(n) stimmen noch nicht (rot)."; }
+}
+function aufdecken(){
+  var k = document.activeElement && document.activeElement.parentElement && document.activeElement.parentElement.dataset.k;
+  if (!k || !R.loesung[k]){ el("rueck").textContent = "Erst ein Kästchen antippen, dann aufdecken."; return; }
+  eingabe[k] = R.loesung[k]; input(k).value = R.loesung[k];
+}
+function loesung(){
+  if (!confirm("Wirklich die ganze Lösung zeigen?")) return;
+  Object.keys(R.loesung).forEach(function(k){ eingabe[k] = R.loesung[k]; input(k).value = R.loesung[k]; });
+  pruefen();
+}
+function leeren(){ eingabe = {}; Object.keys(R.loesung).forEach(function(k){ input(k).value = ""; document.querySelector('.z[data-k="' + k + '"]').classList.remove("falsch", "richtig"); }); }
+
+function zeichneTabs(key){
+  var t = el("tabs"); t.innerHTML = "";
+  var keys = Object.keys(SAETZE); if (keys.length < 2) return;
+  keys.forEach(function(k){
+    var b = document.createElement("button"); b.type = "button"; b.textContent = SAETZE[k].tab;
+    b.setAttribute("aria-pressed", k === key ? "true" : "false");
+    b.addEventListener("click", function(){ starte(k); }); t.append(b);
+  });
+}
+var aktuell = null;
+function starte(key){
+  var s = SAETZE[key]; aktuell = key;
+  el("titel").textContent = s.titel; document.title = s.titel;
+  R = erzeuge(s.woerter); eingabe = {}; aktivWort = null; richtung = "w";
+  zeichneTabs(key); baue();
+  if (location.hash.replace("#", "") !== key){ try { history.replaceState(null, "", "#" + key); } catch (e) {} }
+}
+el("btnPruefen").addEventListener("click", pruefen);
+el("btnBuchstabe").addEventListener("mousedown", function(e){ e.preventDefault(); });
+el("btnBuchstabe").addEventListener("click", aufdecken);
+el("btnLoesung").addEventListener("click", loesung);
+el("btnLeeren").addEventListener("click", leeren);
+el("btnDruck").addEventListener("click", function(){ window.print(); });
+window.addEventListener("hashchange", function(){ var k = location.hash.replace("#", ""); if (SAETZE[k] && k !== aktuell) starte(k); });
+var start = location.hash.replace("#", "");
+starte(SAETZE[start] ? start : Object.keys(SAETZE)[0]);
+</script>
+</body>
+</html>

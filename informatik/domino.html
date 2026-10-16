@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lerndomino</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.45;}
+  .wrap{max-width:1000px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:14px 18px;}
+  header.top h1{font-size:19px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:13.5px; opacity:.92;}
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0;}
+  .tabs button,.knopf{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:14px;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt); min-height:40px;}
+  .tabs button[aria-pressed=true]{background:var(--haupt); color:#fff; border-color:var(--haupt); font-weight:700;}
+  .knopf.primaer{background:var(--haupt); color:#fff; border-color:var(--haupt);}
+  button:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+  .vorgehen{background:#fdf6ee; border-left:4px solid #b35c00; border-radius:0 6px 6px 0;
+    padding:10px 14px; margin:14px 0; font-size:14px;}
+  h2{font-size:13px; color:var(--haupt); margin:16px 0 8px; text-transform:uppercase; letter-spacing:.02em;}
+  .kette,.vorrat{display:flex; flex-wrap:wrap; gap:10px; min-height:70px; padding:10px;
+    border:2px dashed var(--grau); border-radius:8px; background:#fff;}
+  .stein{display:grid; grid-template-columns:1fr 1fr; width:250px; min-height:76px; border:2px solid #333;
+    border-radius:8px; background:#fff; cursor:pointer; overflow:hidden; font-size:14px; text-align:left; padding:0;
+    font-family:inherit; color:var(--text);}
+  .stein > span{padding:8px 10px; display:flex; align-items:center;}
+  .stein .links{background:var(--hell); border-right:2px dashed #333;}
+  .stein .rechts{font-weight:600;}
+  .stein:hover{box-shadow:0 0 0 3px var(--akzent);}
+  .stein.falsch{border-color:var(--rot); background:var(--rothell);}
+  .stein.richtig{border-color:var(--gruen);}
+  .leer{color:var(--textgrau); font-size:14px; align-self:center;}
+  .leiste{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0;}
+  .rueck{padding:10px 14px; border-radius:6px; background:var(--hell); font-size:14px;}
+  .rueck.ok{background:var(--gruenhell); color:var(--gruen); font-weight:700;}
+  .rueck.fehler{background:var(--rothell); color:var(--rot);}
+  footer{margin-top:24px; font-size:12px; color:var(--textgrau);}
+  .druck{display:none;}
+  @media (max-width:560px){ .stein{width:100%;} }
+  @media print{
+    body{background:#fff; padding:0;}
+    .wrap > *:not(.druck){display:none !important;}
+    .druck{display:grid; grid-template-columns:1fr 1fr; gap:0;}
+    .druck .stein{width:100%; border-radius:0; border:1px dashed #000; min-height:3.2cm; font-size:12pt; break-inside:avoid;}
+    .druck .stein .links{background:#fff;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="titel">Lerndomino</h1>
+    <p id="unter">Lege die Steine so aneinander, dass rechts und links zusammenpassen.</p>
+  </header>
+  <div class="tabs" id="tabs" role="group" aria-label="Datensatz wählen"></div>
+  <div class="vorgehen"><b>So geht’s:</b> Jeder Stein hat zwei Hälften. Die <b>linke</b> Hälfte
+    beantwortet die <b>rechte</b> Hälfte des Steins davor. Tippe einen Stein im Vorrat an, um ihn an
+    die Kette zu hängen. Tippe einen Stein in der Kette an, um ihn zurückzulegen. Fang mit dem Stein an,
+    dessen linke Seite „Start“ zeigt.</div>
+  <h2>Deine Kette</h2>
+  <div class="kette" id="kette" aria-live="polite"></div>
+  <div class="leiste">
+    <button class="knopf primaer" id="btnPruefen" type="button">Kette prüfen</button>
+    <button class="knopf" id="btnNeu" type="button">Neu mischen</button>
+    <button class="knopf" id="btnDruck" type="button">Steine drucken</button>
+  </div>
+  <div class="rueck" id="rueck">Noch keine Steine gelegt.</div>
+  <h2>Vorrat</h2>
+  <div class="vorrat" id="vorrat"></div>
+  <div class="druck" id="druck" aria-hidden="true"></div>
+  <footer>Interaktives Begleitmaterial · Lerndomino · Datensatz per Anker in der Adresse wählbar (#name)</footer>
+</div>
+<script>
+"use strict";
+/* ============================================================
+   DATEN: je Satz eine Liste aus Paaren {f: rechte Hälfte (Frage/Begriff),
+   a: Antwort darauf}. Die Kette entsteht aus der Reihenfolge der Liste:
+   Stein k zeigt links die Antwort zu Stein k-1 und rechts f[k].
+   Stein 0 zeigt links "Start", die letzte Antwort steht auf dem Ziel-Stein.
+   ============================================================ */
+var SAETZE = {
+  "if6-begriffe": {
+    tab: "Daten und Codierung", titel: "Lerndomino: Daten und ihre Codierung",
+    paare: [
+      { f: "Was ist ein Bit?", a: "die kleinste Dateneinheit: 0 oder 1" },
+      { f: "Wie viele Bit hat ein Byte?", a: "8 Bit" },
+      { f: "Wie viele verschiedene Folgen gibt es mit 3 Bit?", a: "8 Möglichkeiten" },
+      { f: "Was bedeutet codieren?", a: "Information nach einer Vorschrift in Zeichen übersetzen" },
+      { f: "Was bedeutet decodieren?", a: "Zeichen mit der Vorschrift zurück in Information übersetzen" },
+      { f: "Was ist ein Pixel?", a: "ein einzelner Bildpunkt" },
+      { f: "Wie viele Byte braucht ein Grauwert?", a: "1 Byte (Werte 0 bis 255)" },
+      { f: "Was bedeutet der Grauwert 0?", a: "schwarz, kein Licht" },
+      { f: "Wie viele Byte braucht ein Farb-Pixel (RGB)?", a: "3 Byte" },
+      { f: "Was ist ASCII?", a: "eine Codetabelle für Zeichen mit 7 bzw. 8 Bit" },
+      { f: "Warum braucht Morse Pausen?", a: "die Codes sind verschieden lang" },
+      { f: "Wann werden Daten zur Information?", a: "wenn man weiß, wie sie zu deuten sind" },
+    ],
+  },
+};
+
+var state = { key: null, steine: [], kette: [], vorrat: [] };
+function el(id){ return document.getElementById(id); }
+function mischen(a){ a = a.slice(); for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+function baueSteine(s){
+  var n = s.paare.length, steine = [];
+  for (var k = 0; k <= n; k++){
+    steine.push({ id: k, links: k === 0 ? "Start" : s.paare[k - 1].a, rechts: k < n ? s.paare[k].f : "Ziel" });
+  }
+  return steine;
+}
+
+function steinKnopf(st, ort){
+  var b = document.createElement("button");
+  b.type = "button"; b.className = "stein";
+  b.setAttribute("aria-label", "Stein: links " + st.links + ", rechts " + st.rechts);
+  var l = document.createElement("span"); l.className = "links"; l.textContent = st.links;
+  var r = document.createElement("span"); r.className = "rechts"; r.textContent = st.rechts;
+  b.append(l, r);
+  if (ort === "vorrat") b.addEventListener("click", function(){ verschiebe(st.id, "kette"); });
+  if (ort === "kette") b.addEventListener("click", function(){ verschiebe(st.id, "vorrat"); });
+  return b;
+}
+
+function verschiebe(id, ziel){
+  if (ziel === "kette"){ state.vorrat = state.vorrat.filter(function(x){ return x !== id; }); state.kette.push(id); }
+  else { state.kette = state.kette.filter(function(x){ return x !== id; }); state.vorrat.push(id); }
+  zeichne(); el("rueck").className = "rueck";
+  el("rueck").textContent = state.kette.length + " von " + state.steine.length + " Steinen gelegt.";
+}
+
+function zeichne(markiert){
+  var k = el("kette"), v = el("vorrat");
+  k.innerHTML = ""; v.innerHTML = "";
+  state.kette.forEach(function(id, i){
+    var b = steinKnopf(state.steine[id], "kette");
+    if (markiert) b.classList.add(markiert[i] ? "richtig" : "falsch");
+    k.append(b);
+  });
+  state.vorrat.forEach(function(id){ v.append(steinKnopf(state.steine[id], "vorrat")); });
+  if (!state.kette.length) k.innerHTML = '<span class="leer">Tippe unten einen Stein an.</span>';
+  if (!state.vorrat.length) v.innerHTML = '<span class="leer">Alle Steine liegen in der Kette.</span>';
+}
+
+function pruefen(){
+  var ok = state.kette.map(function(id, i){
+    if (i === 0) return id === 0;
+    return id === state.kette[i - 1] + 1;
+  });
+  zeichne(ok);
+  var falsch = ok.filter(function(x){ return !x; }).length;
+  var r = el("rueck");
+  if (state.kette.length === state.steine.length && falsch === 0){
+    r.className = "rueck ok"; r.textContent = "Geschafft: Die Kette ist vollständig und jede Verbindung stimmt.";
+  } else if (falsch === 0){
+    r.className = "rueck"; r.textContent = "Bis hierhin stimmt alles. Es fehlen noch " + state.vorrat.length + " Steine.";
+  } else {
+    r.className = "rueck fehler"; r.textContent = falsch + " Stein(e) passen nicht an ihren Vorgänger (rot markiert). Lies die linke Hälfte und die rechte Hälfte davor noch einmal.";
+  }
+}
+
+function druckansicht(){
+  var d = el("druck"); d.innerHTML = "";
+  mischen(state.steine).forEach(function(st){ d.append(steinKnopf(st, "druck")); });
+  window.print();
+}
+
+function zeichneTabs(){
+  var t = el("tabs"); t.innerHTML = "";
+  var keys = Object.keys(SAETZE);
+  if (keys.length < 2) return;
+  keys.forEach(function(key){
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = SAETZE[key].tab;
+    b.setAttribute("aria-pressed", key === state.key ? "true" : "false");
+    b.addEventListener("click", function(){ starte(key); });
+    t.append(b);
+  });
+}
+
+function starte(key){
+  var s = SAETZE[key]; state.key = key;
+  el("titel").textContent = s.titel;
+  document.title = s.titel;
+  state.steine = baueSteine(s);
+  state.kette = []; state.vorrat = mischen(state.steine.map(function(x){ return x.id; }));
+  zeichneTabs(); zeichne();
+  el("rueck").className = "rueck"; el("rueck").textContent = "Noch keine Steine gelegt.";
+  if (location.hash.replace("#", "") !== key){ try { history.replaceState(null, "", "#" + key); } catch (e) {} }
+}
+
+el("btnPruefen").addEventListener("click", pruefen);
+el("btnNeu").addEventListener("click", function(){ starte(state.key); });
+el("btnDruck").addEventListener("click", druckansicht);
+window.addEventListener("hashchange", function(){ var k = location.hash.replace("#", ""); if (SAETZE[k] && k !== state.key) starte(k); });
+var start = location.hash.replace("#", "");
+starte(SAETZE[start] ? start : Object.keys(SAETZE)[0]);
+</script>
+</body>
+</html>
