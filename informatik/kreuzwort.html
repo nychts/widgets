@@ -10,49 +10,53 @@
     --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
     --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
     --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
-    --zelle:34px;
+    --zelle:48px;
   }
   *{box-sizing:border-box;}
   body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
     color:var(--text); background:var(--bg); line-height:1.45;}
-  .wrap{max-width:1100px; margin:0 auto;}
+  .wrap{max-width:1500px; margin:0 auto;}
   header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:14px 18px;}
-  header.top h1{font-size:19px; margin:0;}
-  header.top p{margin:4px 0 0; font-size:13.5px; opacity:.92;}
+  header.top h1{font-size:24px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:16px; opacity:.92;}
   .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0;}
-  .tabs button,.knopf{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:14px;
+  .tabs button,.knopf{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:16px;
     border:1px solid var(--grau); background:#fff; color:var(--haupt); min-height:40px;}
   .tabs button[aria-pressed=true]{background:var(--haupt); color:#fff; border-color:var(--haupt); font-weight:700;}
   .knopf.primaer{background:var(--haupt); color:#fff; border-color:var(--haupt);}
   button:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
-  .layout{display:grid; grid-template-columns:minmax(0, auto) minmax(220px, 1fr); gap:22px; margin-top:16px; align-items:start;}
-  .layout > div{min-width:0;}
+  /* Rätsel und Hinweise nebeneinander, wenn Platz ist, sonst Hinweise darunter */
+  .layout{display:flex; flex-wrap:wrap; gap:26px; margin-top:16px; align-items:flex-start;}
+  .layout > div{min-width:0; max-width:100%;}
+  .layout .hinweise{flex:1 1 320px;}
   .gitterbox{overflow-x:auto; padding-bottom:6px; max-width:100%;}
+  .zoom{display:flex; align-items:center; gap:8px; margin:0 0 10px; font-size:15px; color:var(--textgrau);}
+  .zoom button{min-width:44px; min-height:40px; font-size:20px; font-weight:700; padding:0 10px;}
   .gitter{display:grid; gap:0; width:max-content;}
   .z{width:var(--zelle); height:var(--zelle); position:relative;}
   .z.aktiv{border:1px solid #333; margin:-0.5px; background:#fff;}
-  .z input{width:100%; height:100%; border:0; text-align:center; font-size:18px; font-weight:600;
+  .z input{width:100%; height:100%; border:0; text-align:center; font-size:calc(var(--zelle) * 0.56); font-weight:700;
     text-transform:uppercase; background:transparent; padding:0; color:var(--text); caret-color:transparent;}
   .z input:focus{outline:none; background:#fff4d6;}
   .z.markiert input{background:var(--hell);}
   .z.falsch input{background:var(--rothell); color:var(--rot);}
   .z.richtig input{background:var(--gruenhell);}
-  .z .nr{position:absolute; top:1px; left:2px; font-size:9px; color:var(--textgrau); pointer-events:none;}
-  .hinweise h2{font-size:13px; color:var(--haupt); margin:0 0 6px; text-transform:uppercase; letter-spacing:.02em;}
-  .hinweise ol{margin:0 0 16px; padding-left:0; list-style:none; font-size:14.5px;}
-  .hinweise li{padding:3px 6px; border-radius:4px; cursor:pointer;}
+  .z .nr{position:absolute; top:1px; left:3px; font-size:calc(var(--zelle) * 0.27); font-weight:600; color:var(--textgrau); pointer-events:none;}
+  .hinweise h2{font-size:16px; color:var(--haupt); margin:0 0 6px; text-transform:uppercase; letter-spacing:.02em;}
+  .hinweise ol{margin:0 0 16px; padding-left:0; list-style:none; font-size:18px;}
+  .hinweise li{padding:5px 8px; border-radius:4px; cursor:pointer;}
   .hinweise li.aktiv{background:var(--hell);}
-  .hinweise li b{display:inline-block; min-width:26px; color:var(--haupt);}
+  .hinweise li b{display:inline-block; min-width:32px; color:var(--haupt);}
   .leiste{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0;}
-  .rueck{padding:10px 14px; border-radius:6px; background:var(--hell); font-size:14px;}
+  .rueck{padding:10px 14px; border-radius:6px; background:var(--hell); font-size:17px;}
   .rueck.ok{background:var(--gruenhell); color:var(--gruen); font-weight:700;}
   .rueck.fehler{background:var(--rothell); color:var(--rot);}
-  .hinweisumlaut{font-size:13px; color:var(--textgrau); margin-top:6px;}
+  .hinweisumlaut{font-size:15px; color:var(--textgrau); margin-top:6px;}
   footer{margin-top:24px; font-size:12px; color:var(--textgrau);}
-  @media (max-width:760px){ .layout{grid-template-columns:minmax(0, 1fr);} :root{--zelle:28px;} .z input{font-size:15px;} }
   @media print{
     body{background:#fff; padding:0;}
-    .tabs,.leiste,.rueck,footer,header.top p{display:none !important;}
+    .tabs,.leiste,.rueck,.zoom,footer,header.top p{display:none !important;}
+    :root{--zelle:0.95cm !important;}
     header.top{background:#fff; color:#000; padding:0;}
     .z input{color:transparent !important; background:#fff !important;}
     .layout{grid-template-columns:auto 1fr;}
@@ -68,6 +72,11 @@
   <div class="tabs" id="tabs" role="group" aria-label="Datensatz wählen"></div>
   <div class="layout">
     <div>
+      <div class="zoom" role="group" aria-label="Größe des Rätsels">
+        <button class="knopf" id="btnKleiner" type="button" aria-label="Rätsel verkleinern">−</button>
+        <button class="knopf" id="btnGroesser" type="button" aria-label="Rätsel vergrößern">+</button>
+        <span>Größe</span>
+      </div>
       <div class="gitterbox"><div class="gitter" id="gitter"></div></div>
       <p class="hinweisumlaut">Ä, Ö, Ü als AE, OE, UE und ß als SS schreiben.</p>
     </div>
@@ -299,7 +308,7 @@ function starte(key){
   var s = SAETZE[key]; aktuell = key;
   el("titel").textContent = s.titel; document.title = s.titel;
   R = erzeuge(s.woerter); eingabe = {}; aktivWort = null; richtung = "w";
-  zeichneTabs(key); baue();
+  zeichneTabs(key); baue(); passeAn();
   if (location.hash.replace("#", "") !== key){ try { history.replaceState(null, "", "#" + key); } catch (e) {} }
 }
 el("btnPruefen").addEventListener("click", pruefen);
@@ -308,6 +317,22 @@ el("btnBuchstabe").addEventListener("click", aufdecken);
 el("btnLoesung").addEventListener("click", loesung);
 el("btnLeeren").addEventListener("click", leeren);
 el("btnDruck").addEventListener("click", function(){ window.print(); });
+// Zoom: Kästchengröße in 6-px-Schritten (Schrift wächst über calc() mit)
+function zelle(){ return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--zelle")) || 48; }
+function setzeZelle(px){ px = Math.max(26, Math.min(90, px)); document.documentElement.style.setProperty("--zelle", px + "px"); }
+var gezoomt = false;
+el("btnGroesser").addEventListener("click", function(){ gezoomt = true; setzeZelle(zelle() + 6); });
+el("btnKleiner").addEventListener("click", function(){ gezoomt = true; setzeZelle(zelle() - 6); });
+// Beim Laden und bei Größenänderung: Kästchen so groß wie möglich, ohne dass
+// das Rätsel breiter als der verfügbare Platz wird (30–56 px). Nach manuellem
+// Zoom bleibt die gewählte Größe.
+function passeAn(){
+  if (gezoomt || !R) return;
+  var platz = el("gitter").parentElement.parentElement.parentElement.clientWidth;
+  setzeZelle(Math.max(30, Math.min(56, Math.floor((platz - 4) / R.spalten))));
+}
+window.addEventListener("resize", passeAn);
+passeAn();
 window.addEventListener("hashchange", function(){ var k = location.hash.replace("#", ""); if (SAETZE[k] && k !== aktuell) starte(k); });
 var start = location.hash.replace("#", "");
 starte(SAETZE[start] ? start : Object.keys(SAETZE)[0]);
