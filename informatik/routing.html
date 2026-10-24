@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Routing-Simulator</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00; --orangehell:#fdf1e5;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.4;}
+  .wrap{max-width:1200px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:14px 18px;}
+  header.top h1{font-size:24px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:16px; opacity:.92;}
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0;}
+  button{font-family:inherit;}
+  .tabs button,.knopf{padding:8px 14px; border-radius:6px; cursor:pointer; font-size:16px;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt); min-height:44px;}
+  .tabs button[aria-pressed=true]{background:var(--haupt); color:#fff; border-color:var(--haupt); font-weight:700;}
+  button:focus-visible, .knoten:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+  .layout{display:flex; flex-wrap:wrap; gap:18px; margin-top:14px;}
+  .netz{flex:1 1 520px; background:#fff; border:1px solid var(--grau); border-radius:8px; padding:8px;}
+  .seite{flex:1 1 320px;}
+  svg{width:100%; height:auto; display:block;}
+  .kante{stroke:#555; stroke-width:3; cursor:pointer;}
+  .kante.aus{stroke:#bbb; stroke-dasharray:8 6;}
+  .kante.route{stroke:var(--orange); stroke-width:7;}
+  .kante.beste{stroke:var(--gruen); stroke-width:7; stroke-opacity:.55;}
+  .gewicht circle{fill:#fff; stroke:var(--orange); stroke-width:1.5;}
+  .gewicht text{fill:var(--orange); font-weight:700; font-size:17px; text-anchor:middle; dominant-baseline:central; pointer-events:none;}
+  .knoten circle{fill:#fff; stroke:var(--haupt); stroke-width:3;}
+  .knoten text{fill:var(--haupt); font-weight:700; font-size:22px; text-anchor:middle; dominant-baseline:central; pointer-events:none;}
+  .knoten{cursor:pointer;}
+  .knoten.start circle{fill:var(--hell); stroke-width:5;}
+  .knoten.ziel circle{fill:var(--orangehell); stroke:var(--orange); stroke-width:5;}
+  .knoten.aktiv circle{fill:var(--haupt);} .knoten.aktiv text{fill:#fff;}
+  .knoten.aus circle{fill:#eee; stroke:#aaa; stroke-dasharray:5 4;} .knoten.aus text{fill:#aaa;}
+  .box{background:#fff; border:1px solid var(--grau); border-radius:8px; padding:12px 14px; margin-bottom:12px;}
+  .box h2{font-size:18px; margin:0 0 8px; color:var(--haupt);}
+  .rueck{padding:10px 14px; border-radius:6px; background:var(--hell); font-size:17px; min-height:2.6em;}
+  .rueck.ok{background:var(--gruenhell); color:var(--gruen); font-weight:700;}
+  .rueck.nein{background:var(--rothell); color:var(--rot);}
+  table{border-collapse:collapse; width:100%; font-size:17px;}
+  th,td{border:1px solid var(--grau); padding:5px 8px; text-align:center;}
+  th{background:var(--hell);}
+  td.weg{color:var(--rot); font-style:italic;}
+  .klein{font-size:14px; color:var(--textgrau);}
+  .zeile{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0;}
+  footer{margin-top:20px; font-size:12px; color:var(--textgrau);}
+  @media (max-width:560px){ body{padding:10px;} header.top h1{font-size:20px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="titel">Routing-Simulator</h1>
+    <p id="untertitel">Hops, Kosten und Routing-Tabellen ausprobieren</p>
+  </header>
+
+  <div class="tabs" role="group" aria-label="Netz und Modus">
+    <button type="button" data-satz="ds4">Kosten (Forschungsnetz)</button>
+    <button type="button" data-satz="ds5">Router (Forschungsnetz)</button>
+    <button type="button" data-satz="uebung">Router (Übungsnetz)</button>
+  </div>
+
+  <div class="layout">
+    <div class="netz"><svg id="bild" viewBox="0 0 760 420" role="img" aria-label="Netz mit Stationen und Kosten"></svg></div>
+    <div class="seite">
+      <div class="box" id="anleitung"></div>
+      <div class="box" id="werkzeug"></div>
+      <div class="rueck" id="rueck" aria-live="polite"></div>
+    </div>
+  </div>
+  <footer>Routing-Simulator · Informatik · frei nutzbar</footer>
+</div>
+
+<script>
+"use strict";
+/* ===== Datensätze ===== */
+var NETZE = {
+  forschung: {
+    knoten: { A:[300,360], B:[300,160], C:[90,230], D:[470,260], E:[620,260], F:[420,60], G:[730,260] },
+    kanten: [["A","B",2],["A","D",3],["B","C",4],["B","D",7],["C","F",3],["D","E",2],["E","F",4],["E","G",1]]
+  },
+  uebung: {
+    knoten: { A:[90,330], E:[380,330], F:[670,330], C:[230,120], D:[530,120] },
+    kanten: [["A","E",3],["C","D",1],["C","E",4],["D","E",2],["E","F",3]]
+  }
+};
+var SAETZE = {
+  ds4: { netz:"forschung", modus:"kosten", titel:"Hops und Kosten",
+    text:"Klicke zuerst den Start, dann das Ziel. Dann baue die Route Station für Station: Klicke immer einen Nachbarn der letzten Station an. Mit + und − änderst du die Kosten einer Leitung." },
+  ds5: { netz:"forschung", modus:"router", titel:"Routing-Tabellen",
+    text:"Klicke eine Station an: Du siehst ihre Routing-Tabelle. Klicke eine Leitung an, um sie ausfallen zu lassen. Mit dem Schalter fällt eine ganze Station aus. Wie ändern sich die Tabellen?" },
+  uebung: { netz:"uebung", modus:"router", titel:"Routing-Tabellen im Übungsnetz",
+    text:"Das Netz von AB 5. Klicke eine Station an und vergleiche mit deiner Tabelle. Lass dann eine Leitung ausfallen." }
+};
+
+/* ===== Logik (ohne Anzeige, in Node prüfbar) ===== */
+function kantenkey(a,b){ return a<b ? a+"-"+b : b+"-"+a; }
+function nachbarn(netz, s, gewichte, ausK, ausN){
+  var n = [];
+  netz.kanten.forEach(function(k){
+    var key = kantenkey(k[0],k[1]);
+    if (ausK[key] || ausN[k[0]] || ausN[k[1]]) return;
+    if (k[0]===s) n.push([k[1], gewichte[key]]);
+    else if (k[1]===s) n.push([k[0], gewichte[key]]);
+  });
+  return n;
+}
+/* Dijkstra; bei Gleichstand gewinnt die alphabetisch kleinere nächste Station */
+function routing(netz, start, gewichte, ausK, ausN){
+  var dist = {}, erste = {}, besucht = {};
+  Object.keys(netz.knoten).forEach(function(k){ dist[k] = Infinity; erste[k] = null; });
+  if (ausN[start]) return { dist:dist, erste:erste };
+  dist[start] = 0;
+  while (true){
+    var u = null;
+    Object.keys(dist).sort().forEach(function(k){
+      if (!besucht[k] && dist[k] < Infinity && (u===null || dist[k] < dist[u])) u = k;
+    });
+    if (u===null) break;
+    besucht[u] = true;
+    nachbarn(netz, u, gewichte, ausK, ausN).forEach(function(p){
+      var v = p[0], nd = dist[u] + p[1];
+      var ne = (u===start) ? v : erste[u];
+      if (nd < dist[v] || (nd === dist[v] && ne < erste[v])){ dist[v] = nd; erste[v] = ne; }
+    });
+  }
+  return { dist:dist, erste:erste };
+}
+function routenKosten(route, gewichte){
+  var s = 0;
+  for (var i = 1; i < route.length; i++) s += gewichte[kantenkey(route[i-1], route[i])];
+  return s;
+}
+function startGewichte(netz){
+  var g = {}; netz.kanten.forEach(function(k){ g[kantenkey(k[0],k[1])] = k[2]; }); return g;
+}
+
+/* ===== Zustand ===== */
+var state = { satz:null, netz:null, gewichte:{}, ausK:{}, ausN:{}, start:null, ziel:null, route:[], gewaehlt:null };
+
+/* ===== Anzeige ===== */
+var SVGNS = "http://www.w3.org/2000/svg";
+function el(name, attrs){ var e = document.createElementNS(SVGNS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+function rueck(text, art){ var r = document.getElementById("rueck"); r.textContent = text; r.className = "rueck" + (art ? " " + art : ""); }
+
+function zeichne(){
+  var svg = document.getElementById("bild"), n = state.netz;
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var routeKeys = {};
+  for (var i = 1; i < state.route.length; i++) routeKeys[kantenkey(state.route[i-1], state.route[i])] = true;
+  var besteKeys = {};
+  if (SAETZE[state.satz].modus === "kosten" && state.start && state.ziel && state.route.length && state.route[state.route.length-1] === state.ziel){
+    var b = besteRoute(state.start, state.ziel);
+    for (var j = 1; j < b.length; j++) besteKeys[kantenkey(b[j-1], b[j])] = true;
+  }
+  n.kanten.forEach(function(k){
+    var p = n.knoten[k[0]], q = n.knoten[k[1]], key = kantenkey(k[0],k[1]);
+    var cls = "kante" + (state.ausK[key] ? " aus" : "") + (besteKeys[key] ? " beste" : "") + (routeKeys[key] ? " route" : "");
+    var l = el("line", {x1:p[0], y1:p[1], x2:q[0], y2:q[1], "class":cls});
+    l.addEventListener("click", function(){ kanteKlick(key); });
+    svg.appendChild(l);
+  });
+  n.kanten.forEach(function(k){
+    var p = n.knoten[k[0]], q = n.knoten[k[1]], key = kantenkey(k[0],k[1]);
+    var g = el("g", {"class":"gewicht"});
+    var mx = (p[0]+q[0])/2, my = (p[1]+q[1])/2;
+    g.appendChild(el("circle", {cx:mx, cy:my, r:16}));
+    var t = el("text", {x:mx, y:my}); t.textContent = state.ausK[key] ? "×" : state.gewichte[key];
+    g.appendChild(t); svg.appendChild(g);
+  });
+  Object.keys(n.knoten).forEach(function(name){
+    var p = n.knoten[name];
+    var cls = "knoten" + (state.ausN[name] ? " aus" : "") + (name===state.start ? " start" : "") + (name===state.ziel ? " ziel" : "") + (name===state.gewaehlt ? " aktiv" : "");
+    var g = el("g", {"class":cls, tabindex:"0", role:"button", "aria-label":"Station " + name});
+    g.appendChild(el("circle", {cx:p[0], cy:p[1], r:28}));
+    var t = el("text", {x:p[0], y:p[1]}); t.textContent = name; g.appendChild(t);
+    g.addEventListener("click", function(){ knotenKlick(name); });
+    g.addEventListener("keydown", function(e){ if (e.key==="Enter" || e.key===" "){ e.preventDefault(); knotenKlick(name); } });
+    svg.appendChild(g);
+  });
+}
+
+function besteRoute(s, z){
+  var r = [s], aktuell = s, schutz = 0;
+  while (aktuell !== z && schutz++ < 20){
+    var t = routing(state.netz, aktuell, state.gewichte, state.ausK, state.ausN);
+    if (!t.erste[z]) return [];
+    aktuell = t.erste[z]; r.push(aktuell);
+  }
+  return r;
+}
+
+function werkzeug(){
+  var w = document.getElementById("werkzeug"); w.innerHTML = "";
+  var satz = SAETZE[state.satz];
+  if (satz.modus === "kosten"){
+    var h = document.createElement("h2"); h.textContent = "Deine Route"; w.appendChild(h);
+    var p = document.createElement("p");
+    p.textContent = state.route.length ? state.route.join(" → ") : "noch keine";
+    p.style.fontSize = "20px"; w.appendChild(p);
+    var info = document.createElement("p");
+    info.textContent = "Hops: " + Math.max(0, state.route.length-1) + " · Kosten: " + (state.route.length > 1 ? routenKosten(state.route, state.gewichte) : 0);
+    w.appendChild(info);
+    var z = document.createElement("div"); z.className = "zeile";
+    z.appendChild(knopf("Neu anfangen", neuAnfangen));
+    z.appendChild(knopf("Letzten Schritt zurück", function(){ if (state.route.length > 1){ state.route.pop(); aktualisieren(); } }));
+    w.appendChild(z);
+    var h2 = document.createElement("h2"); h2.textContent = "Kosten einer Leitung ändern"; w.appendChild(h2);
+    var hin = document.createElement("p"); hin.className = "klein"; hin.textContent = "Leitung anklicken, dann + oder −."; w.appendChild(hin);
+    var z2 = document.createElement("div"); z2.className = "zeile";
+    var lab = document.createElement("span"); lab.textContent = state.gewaehlt ? "Leitung " + state.gewaehlt + ": " + state.gewichte[state.gewaehlt] : "keine Leitung gewählt"; z2.appendChild(lab);
+    z2.appendChild(knopf("−", function(){ aendern(-1); }));
+    z2.appendChild(knopf("+", function(){ aendern(1); }));
+    w.appendChild(z2);
+  } else {
+    var h3 = document.createElement("h2");
+    h3.textContent = state.gewaehlt && state.netz.knoten[state.gewaehlt] ? "Routing-Tabelle von " + state.gewaehlt : "Station anklicken";
+    w.appendChild(h3);
+    if (state.gewaehlt && state.netz.knoten[state.gewaehlt]){
+      var t = routing(state.netz, state.gewaehlt, state.gewichte, state.ausK, state.ausN);
+      var tab = document.createElement("table");
+      tab.innerHTML = "<tr><th>Ziel</th><th>Kosten</th><th>nächste</th></tr>";
+      Object.keys(state.netz.knoten).sort().forEach(function(z){
+        if (z === state.gewaehlt) return;
+        var tr = document.createElement("tr");
+        if (t.dist[z] === Infinity){ tr.innerHTML = "<td>"+z+"</td><td class='weg' colspan='2'>nicht erreichbar</td>"; }
+        else { tr.innerHTML = "<td>"+z+"</td><td>"+t.dist[z]+"</td><td><b>"+t.erste[z]+"</b></td>"; }
+        tab.appendChild(tr);
+      });
+      w.appendChild(tab);
+      var z3 = document.createElement("div"); z3.className = "zeile";
+      z3.appendChild(knopf(state.ausN[state.gewaehlt] ? "Station " + state.gewaehlt + " wieder einschalten" : "Station " + state.gewaehlt + " ausfallen lassen", function(){
+        state.ausN[state.gewaehlt] = !state.ausN[state.gewaehlt]; aktualisieren();
+        rueck(state.ausN[state.gewaehlt] ? "Station " + state.gewaehlt + " ist ausgefallen. Schau dir die Tabellen der anderen Stationen an." : "Station " + state.gewaehlt + " läuft wieder.");
+      }));
+      w.appendChild(z3);
+    }
+    var z4 = document.createElement("div"); z4.className = "zeile";
+    z4.appendChild(knopf("Alles reparieren", function(){ state.ausK = {}; state.ausN = {}; aktualisieren(); rueck("Alle Leitungen und Stationen laufen wieder."); }));
+    w.appendChild(z4);
+  }
+}
+function knopf(text, fn){ var b = document.createElement("button"); b.type = "button"; b.className = "knopf"; b.textContent = text; b.addEventListener("click", fn); return b; }
+
+function aktualisieren(){ zeichne(); werkzeug(); }
+
+function neuAnfangen(){ state.start = null; state.ziel = null; state.route = []; aktualisieren(); rueck("Klicke den Start an."); }
+
+function aendern(d){
+  if (!state.gewaehlt){ rueck("Erst eine Leitung anklicken."); return; }
+  state.gewichte[state.gewaehlt] = Math.max(1, Math.min(20, state.gewichte[state.gewaehlt] + d));
+  aktualisieren(); pruefeRoute();
+}
+
+function knotenKlick(name){
+  var satz = SAETZE[state.satz];
+  if (satz.modus === "router"){ state.gewaehlt = name; aktualisieren(); rueck("Routing-Tabelle von " + name + ". In der Spalte „nächste“ steht immer ein Nachbar."); return; }
+  if (!state.start){ state.start = name; state.route = [name]; aktualisieren(); rueck("Start: " + name + ". Jetzt das Ziel anklicken."); return; }
+  if (!state.ziel){ if (name === state.start) return; state.ziel = name; aktualisieren(); rueck("Ziel: " + name + ". Baue die Route ab " + state.start + "."); return; }
+  var letzte = state.route[state.route.length-1];
+  if (letzte === state.ziel){ rueck("Die Route ist fertig. Neu anfangen oder Kosten ändern."); return; }
+  if (state.route.indexOf(name) >= 0){ rueck(name + " ist schon auf der Route. Keine Station zweimal."); return; }
+  var ok = nachbarn(state.netz, letzte, state.gewichte, state.ausK, state.ausN).some(function(p){ return p[0] === name; });
+  if (!ok){ rueck(name + " ist kein Nachbar von " + letzte + ". Ein Paket springt nur zu Nachbarn.", "nein"); return; }
+  state.route.push(name); aktualisieren(); pruefeRoute();
+}
+
+function pruefeRoute(){
+  if (!state.ziel || state.route[state.route.length-1] !== state.ziel) return;
+  var k = routenKosten(state.route, state.gewichte);
+  var best = routing(state.netz, state.start, state.gewichte, state.ausK, state.ausN).dist[state.ziel];
+  zeichne();
+  if (k === best) rueck("Angekommen mit Kosten " + k + ". Das ist die günstigste Route.", "ok");
+  else rueck("Angekommen mit Kosten " + k + ". Es geht günstiger: " + best + " (grün im Netz). Wie viele Hops hat die grüne Route?", "nein");
+}
+
+function kanteKlick(key){
+  if (SAETZE[state.satz].modus === "kosten"){ state.gewaehlt = key; werkzeug(); rueck("Leitung " + key + " gewählt. Mit + und − die Kosten ändern."); return; }
+  state.ausK[key] = !state.ausK[key]; aktualisieren();
+  rueck(state.ausK[key] ? "Leitung " + key + " ist ausgefallen." : "Leitung " + key + " läuft wieder.");
+}
+
+function waehle(satzname){
+  if (!SAETZE[satzname]) satzname = "ds4";
+  var s = SAETZE[satzname];
+  state.satz = satzname; state.netz = NETZE[s.netz]; state.gewichte = startGewichte(state.netz);
+  state.ausK = {}; state.ausN = {}; state.start = null; state.ziel = null; state.route = []; state.gewaehlt = null;
+  document.getElementById("titel").textContent = "Routing-Simulator: " + s.titel;
+  document.getElementById("anleitung").innerHTML = "<h2>So geht's</h2><p></p>";
+  document.querySelector("#anleitung p").textContent = s.text;
+  Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){ b.setAttribute("aria-pressed", b.dataset.satz === satzname ? "true" : "false"); });
+  if (location.hash.slice(1) !== satzname) history.replaceState(null, "", "#" + satzname);
+  aktualisieren();
+  rueck(s.modus === "kosten" ? "Klicke den Start an." : "Klicke eine Station an.");
+}
+
+Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){ b.addEventListener("click", function(){ waehle(b.dataset.satz); }); });
+window.addEventListener("hashchange", function(){ waehle(location.hash.slice(1)); });
+waehle(location.hash.slice(1));
+</script>
+</body>
+</html>
