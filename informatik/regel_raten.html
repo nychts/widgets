@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regel raten</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00; --orangehell:#fdf1e5;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.45;}
+  .wrap{max-width:900px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:14px 18px;}
+  header.top h1{font-size:24px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:16px; opacity:.92;}
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0;}
+  button{font-family:inherit; font-size:16px; min-height:44px; padding:8px 14px; border-radius:6px; cursor:pointer;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt);}
+  button[aria-pressed=true],button.primaer{background:var(--haupt); color:#fff; border-color:var(--haupt); font-weight:700;}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+  section.karte{background:#fff; border:1px solid var(--grau); border-radius:8px; padding:14px 16px; margin:14px 0;}
+  section.karte h2{font-size:19px; margin:0 0 8px; color:var(--haupt);}
+  .zeile{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  input[type=text]{font-family:Consolas,"Courier New",monospace; font-size:20px; padding:8px 10px; min-height:44px;
+    border:1.5px solid var(--grau); border-radius:6px; width:14em; max-width:100%;}
+  textarea{width:100%; min-height:5em; font-family:inherit; font-size:16px; padding:8px; border:1.5px solid var(--grau); border-radius:6px;}
+  .zaehler{font-size:15px; color:var(--textgrau);}
+  .meldung{padding:10px 14px; border-radius:6px; background:var(--hell); font-size:17px; margin-top:10px;}
+  .meldung.ok{background:var(--gruenhell); color:var(--gruen);}
+  .meldung.nein{background:var(--rothell); color:var(--rot);}
+  .meldung.witz{background:var(--orangehell); color:var(--orange);}
+  ol.log{list-style:none; padding:0; margin:8px 0 0; display:flex; flex-direction:column; gap:6px;}
+  ol.log li{display:flex; gap:12px; align-items:center; padding:6px 10px; border-radius:6px; border:1px solid var(--grau);}
+  ol.log li.ja{background:var(--gruenhell); border-color:var(--gruen);}
+  ol.log li.nein{background:var(--rothell); border-color:var(--rot);}
+  .code{font-family:Consolas,"Courier New",monospace; font-size:20px; white-space:pre; min-width:7em;}
+  .code.leer{font-family:inherit; font-style:italic; font-size:16px;}
+  .urteil{font-weight:700;}
+  .quelle{font-size:13px; color:var(--textgrau); margin-left:auto;}
+  .test{display:flex; flex-wrap:wrap; gap:10px; align-items:center; font-size:18px;}
+  .gesperrt{color:var(--textgrau); font-style:italic;}
+  footer{margin-top:24px; font-size:12px; color:var(--textgrau);}
+  @media (max-width:560px){ body{padding:12px;} .code{font-size:17px; min-width:5em;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="titel">Regel raten</h1>
+    <p id="kontext"></p>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="Datensatz wählen"></nav>
+
+  <section class="karte" aria-labelledby="h-erkunden">
+    <h2 id="h-erkunden">1 · Erkunden</h2>
+    <p id="anleitung"></p>
+    <div class="zeile">
+      <button class="primaer" id="ziehen">Code ziehen</button>
+      <span>oder</span>
+      <label for="eingabe" class="zaehler">eigenen Code nachfragen:</label>
+      <input type="text" id="eingabe" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button id="fragen">Nachfragen</button>
+    </div>
+    <div class="meldung" id="meldung" role="status" aria-live="polite">Noch nichts geprüft.</div>
+    <p class="zaehler" id="zaehler"></p>
+    <ol class="log" id="log" aria-label="Bisher geprüfte Codes"></ol>
+  </section>
+
+  <section class="karte" aria-labelledby="h-regel">
+    <h2 id="h-regel">2 · Regel aufstellen</h2>
+    <p id="regel-sperre" class="gesperrt"></p>
+    <label for="regel">Deine Regel (so genau, dass ein Rechner sie prüfen könnte):</label>
+    <textarea id="regel" disabled></textarea>
+  </section>
+
+  <section class="karte" aria-labelledby="h-test">
+    <h2 id="h-test">3 · Vorhersagetest</h2>
+    <p>Der Scanner zeigt dir Codes, die du noch nicht gesehen hast. Sag vorher, wie er entscheidet.</p>
+    <button id="test-start" disabled>Test starten</button>
+    <div id="test" aria-live="polite"></div>
+  </section>
+
+  <footer>Informatik · Formale Sprachen · Widget „Regel raten“</footer>
+</div>
+
+<script>
+"use strict";
+/* ===== Datensätze: je Regel ein Eintrag, Auswahl über den URL-Hash ===== */
+var BUCHST = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+function zufall(n){ return Math.floor(Math.random() * n); }
+function wahl(arr){ return arr[zufall(arr.length)]; }
+
+var SAETZE = {
+  "q2lk-ticket": {
+    tab: "Parkett-Eingang",
+    titel: "Der Einlass-Scanner",
+    kontext: "Am Ballabend prüft der Scanner am Eingang jeden Ticketcode. Er kennt eine geheime Regel. Finde sie heraus.",
+    anleitung: "Zieh Codes aus dem Stapel der Gäste oder tipp einen eigenen Code ein. Der Scanner sagt nur „Einlass“ oder „abgewiesen“, nie warum.",
+    // Regel: ein Buchstabe A–F, Bindestrich, Platznummer 1–99 ohne führende Null
+    pruefe: function(w){ return /^[A-F]-[1-9][0-9]?$/.test(w); },
+    gueltig: function(){ return wahl("ABCDEF") + "-" + (1 + zufall(99)); },
+    ungueltig: function(){
+      var r = wahl("ABCDEF"), n = 1 + zufall(99);
+      var varianten = [
+        function(){ return wahl("GHKLMPRSTZ") + "-" + n; },          // Buchstabe außerhalb A–F
+        function(){ return r.toLowerCase() + "-" + n; },              // Kleinbuchstabe
+        function(){ return r + n; },                                  // Bindestrich fehlt
+        function(){ return r + "-0" + (1 + zufall(9)); },             // führende Null
+        function(){ return r + "-0"; },                               // Platz 0
+        function(){ return r + "-" + (100 + zufall(900)); },          // dreistellig
+        function(){ return r + " " + n; },                            // Leerzeichen statt Bindestrich
+        function(){ return r + wahl("ABCDEF") + "-" + n; },           // zwei Buchstaben
+        function(){ return n + "-" + r; },                            // vertauscht
+        function(){ return r + "-" + n + wahl("ABX"); }               // Zeichen am Ende
+      ];
+      return wahl(varianten)();
+    },
+    // Grenzfälle für den Vorhersagetest: genau hier zeigt sich, ob die Regel trägt
+    grenzfaelle: ["A-1", "F-99", "F-10", "G-5", "B-05", "C-0", "D-100", "E7", "a-3", "AB-12", "C-9X", ""],
+    leer: "Netter Versuch. Ohne Code gibt es kein Gratis-Ticket.",
+    min: 5
+  },
+  "q2lk-vip": {
+    tab: "VIP-Eingang",
+    titel: "Der VIP-Scanner",
+    kontext: "Am VIP-Eingang tragen die Tickets nur die Zeichen X und O. Auch hier gilt eine geheime Regel.",
+    anleitung: "Zieh Codes oder tipp eigene Codes aus X und O ein. Der Scanner sagt nur „Einlass“ oder „abgewiesen“.",
+    // Regel: nicht leer, nie zwei O hintereinander, endet auf X
+    pruefe: function(w){ return /^(X|OX)+$/.test(w); },
+    gueltig: function(){ var s = "", k = 1 + zufall(5); for (var i = 0; i < k; i++) s += wahl(["X", "OX"]); return s; },
+    ungueltig: function(){
+      var s = SAETZE["q2lk-vip"].gueltig();
+      var varianten = [
+        function(){ return s + "O"; },                                // endet auf O
+        function(){ var p = zufall(s.length + 1); return s.slice(0, p) + "OO" + s.slice(p); }, // OO
+        function(){ return s.replace(/X$/, "Y"); },                   // fremdes Zeichen
+        function(){ return "O"; }
+      ];
+      return wahl(varianten)();
+    },
+    grenzfaelle: ["X", "OX", "XO", "OOX", "XXXX", "OXOX", "XOOX", "O", "XOX", ""],
+    leer: "Leerer Code? Auch VIPs zeigen ein Ticket.",
+    min: 5
+  }
+};
+
+/* ===== ab hier: Mechanik, unabhängig vom Datensatz ===== */
+var state = { satz: null, id: "", log: [], gesehen: {}, test: null };
+
+function $(id){ return document.getElementById(id); }
+function anzeige(w){ return w === "" ? "(leer)" : w; }
+
+function waehle(id){
+  if (!SAETZE[id]) id = "q2lk-ticket";
+  state = { satz: SAETZE[id], id: id, log: [], gesehen: {}, test: null };
+  $("titel").textContent = state.satz.titel;
+  $("kontext").textContent = state.satz.kontext;
+  $("anleitung").textContent = state.satz.anleitung;
+  $("meldung").textContent = "Noch nichts geprüft.";
+  $("meldung").className = "meldung";
+  $("regel").value = ladeRegel(id);
+  $("test").textContent = "";
+  Array.prototype.forEach.call($("tabs").children, function(b){
+    b.setAttribute("aria-pressed", b.dataset.id === id ? "true" : "false");
+  });
+  zeichne();
+}
+
+/* Prüfen liefert ein Ergebnisobjekt; die Anzeige liest nur dieses Objekt. */
+function pruefen(wort, quelle){
+  var ok = state.satz.pruefe(wort);
+  var e = { wort: wort, ok: ok, quelle: quelle };
+  state.log.unshift(e);
+  state.gesehen[wort] = true;
+  return e;
+}
+
+function ziehen(){
+  var wort, versuche = 0;
+  do {
+    wort = Math.random() < 0.5 ? state.satz.gueltig() : state.satz.ungueltig();
+    versuche++;
+  } while (state.gesehen[wort] && versuche < 20);
+  return pruefen(wort, "gezogen");
+}
+
+function melde(e){
+  var m = $("meldung");
+  if (e.wort === "") { m.textContent = state.satz.leer; m.className = "meldung witz"; return; }
+  m.textContent = anzeige(e.wort) + (e.ok ? ": Einlass." : ": abgewiesen.");
+  m.className = "meldung " + (e.ok ? "ok" : "nein");
+}
+
+function zeichne(){
+  var log = $("log");
+  log.textContent = "";
+  state.log.forEach(function(e){
+    var li = document.createElement("li");
+    li.className = e.ok ? "ja" : "nein";
+    var c = document.createElement("span");
+    c.className = "code" + (e.wort === "" ? " leer" : "");
+    c.textContent = anzeige(e.wort);
+    var u = document.createElement("span");
+    u.className = "urteil";
+    u.textContent = e.ok ? "✔ Einlass" : "✘ abgewiesen";
+    var q = document.createElement("span");
+    q.className = "quelle";
+    q.textContent = e.quelle;
+    li.appendChild(c); li.appendChild(u); li.appendChild(q);
+    log.appendChild(li);
+  });
+  var n = state.log.length, min = state.satz.min;
+  $("zaehler").textContent = n + " Code" + (n === 1 ? "" : "s") + " geprüft. Ziel: 5 bis 10.";
+  var frei = n >= min;
+  $("regel").disabled = !frei;
+  $("test-start").disabled = !frei;
+  $("regel-sperre").textContent = frei ? "" : "Erst nach " + min + " geprüften Codes. Noch " + (min - n) + ".";
+}
+
+/* Vorhersagetest: 6 ungesehene Codes, mindestens 4 Grenzfälle */
+function testCodes(){
+  var pool = state.satz.grenzfaelle.filter(function(w){ return !state.gesehen[w]; });
+  var codes = [];
+  while (codes.length < 4 && pool.length > 0) codes.push(pool.splice(zufall(pool.length), 1)[0]);
+  var versuche = 0;
+  while (codes.length < 6 && versuche < 200) {
+    var w = Math.random() < 0.5 ? state.satz.gueltig() : state.satz.ungueltig();
+    if (!state.gesehen[w] && codes.indexOf(w) < 0) codes.push(w);
+    versuche++;
+  }
+  return codes;
+}
+
+function testStarten(){
+  state.test = { codes: testCodes(), pos: 0, tipps: [] };
+  zeigeTest();
+}
+
+function tippe(meinung){
+  var t = state.test;
+  t.tipps.push(meinung);
+  t.pos++;
+  zeigeTest();
+}
+
+function testAuswertung(t){
+  var falsch = [];
+  t.codes.forEach(function(w, i){
+    var ok = state.satz.pruefe(w);
+    if (ok !== t.tipps[i]) falsch.push({ wort: w, ok: ok });
+  });
+  return { richtig: t.codes.length - falsch.length, gesamt: t.codes.length, falsch: falsch };
+}
+
+function zeigeTest(){
+  var box = $("test"), t = state.test;
+  box.textContent = "";
+  if (t.pos < t.codes.length) {
+    var d = document.createElement("div");
+    d.className = "test";
+    var info = document.createElement("span");
+    info.textContent = "Code " + (t.pos + 1) + " von " + t.codes.length + ":";
+    var c = document.createElement("span");
+    c.className = "code" + (t.codes[t.pos] === "" ? " leer" : "");
+    c.textContent = anzeige(t.codes[t.pos]);
+    var ja = document.createElement("button");
+    ja.textContent = "✔ Einlass (J)";
+    ja.addEventListener("click", function(){ tippe(true); });
+    var nein = document.createElement("button");
+    nein.textContent = "✘ abgewiesen (N)";
+    nein.addEventListener("click", function(){ tippe(false); });
+    d.appendChild(info); d.appendChild(c); d.appendChild(ja); d.appendChild(nein);
+    box.appendChild(d);
+    ja.focus();
+    return;
+  }
+  var r = testAuswertung(t);
+  var m = document.createElement("div");
+  if (r.falsch.length === 0) {
+    m.className = "meldung ok";
+    m.textContent = r.richtig + " von " + r.gesamt + " richtig vorhergesagt. Deine Regel trägt. Schreib sie für die nächste Stunde auf.";
+    box.appendChild(m);
+  } else {
+    m.className = "meldung nein";
+    m.textContent = r.richtig + " von " + r.gesamt + " richtig. Bei diesen Codes lag deine Regel daneben:";
+    box.appendChild(m);
+    var ol = document.createElement("ol");
+    ol.className = "log";
+    r.falsch.forEach(function(f){
+      var li = document.createElement("li");
+      li.className = f.ok ? "ja" : "nein";
+      var c = document.createElement("span");
+      c.className = "code" + (f.wort === "" ? " leer" : "");
+      c.textContent = anzeige(f.wort);
+      var u = document.createElement("span");
+      u.className = "urteil";
+      u.textContent = f.ok ? "✔ Einlass" : "✘ abgewiesen";
+      li.appendChild(c); li.appendChild(u);
+      ol.appendChild(li);
+      state.gesehen[f.wort] = true;
+      state.log.unshift({ wort: f.wort, ok: f.ok, quelle: "aus dem Test" });
+    });
+    box.appendChild(ol);
+    var p = document.createElement("p");
+    p.textContent = "Pass deine Regel an und starte den Test neu. Die Codes stehen jetzt auch oben in der Liste.";
+    box.appendChild(p);
+    zeichne();
+  }
+  state.test = null;
+}
+
+/* Regeltext bleibt beim Neuladen erhalten, wenn der Browser es erlaubt */
+function ladeRegel(id){ try { return localStorage.getItem("regel_raten_" + id) || ""; } catch (e) { return ""; } }
+function speichereRegel(){ try { localStorage.setItem("regel_raten_" + state.id, $("regel").value); } catch (e) {} }
+
+function init(){
+  Object.keys(SAETZE).forEach(function(id){
+    var b = document.createElement("button");
+    b.textContent = SAETZE[id].tab;
+    b.dataset.id = id;
+    b.addEventListener("click", function(){ location.hash = id; });
+    $("tabs").appendChild(b);
+  });
+  $("ziehen").addEventListener("click", function(){ var e = ziehen(); melde(e); zeichne(); });
+  function frage(){ var e = pruefen($("eingabe").value.trim(), "nachgefragt"); melde(e); zeichne(); $("eingabe").select(); }
+  $("fragen").addEventListener("click", frage);
+  $("eingabe").addEventListener("keydown", function(ev){ if (ev.key === "Enter") frage(); });
+  $("regel").addEventListener("input", speichereRegel);
+  $("test-start").addEventListener("click", testStarten);
+  document.addEventListener("keydown", function(ev){
+    if (!state.test || ev.target.tagName === "INPUT" || ev.target.tagName === "TEXTAREA") return;
+    if (ev.key === "j" || ev.key === "J") tippe(true);
+    if (ev.key === "n" || ev.key === "N") tippe(false);
+  });
+  window.addEventListener("hashchange", function(){ waehle(location.hash.slice(1)); });
+  waehle(location.hash.slice(1));
+}
+init();
+</script>
+</body>
+</html>
