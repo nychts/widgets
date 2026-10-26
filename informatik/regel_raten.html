@@ -10,6 +10,8 @@
     --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00; --orangehell:#fdf1e5;
     --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
     --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+    /* Ticketfarben, je Datensatz überschrieben */
+    --t-grund:#fffaf0; --t-rand:#14507d; --t-kopf:#14507d; --t-kopftext:#fff; --t-akzent:#c9a227;
   }
   *{box-sizing:border-box;}
   body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
@@ -35,18 +37,84 @@
   .meldung.ok{background:var(--gruenhell); color:var(--gruen);}
   .meldung.nein{background:var(--rothell); color:var(--rot);}
   .meldung.witz{background:var(--orangehell); color:var(--orange);}
-  ol.log{list-style:none; padding:0; margin:8px 0 0; display:flex; flex-direction:column; gap:6px;}
-  ol.log li{display:flex; gap:12px; align-items:center; padding:6px 10px; border-radius:6px; border:1px solid var(--grau);}
-  ol.log li.ja{background:var(--gruenhell); border-color:var(--gruen);}
-  ol.log li.nein{background:var(--rothell); border-color:var(--rot);}
-  .code{font-family:Consolas,"Courier New",monospace; font-size:20px; white-space:pre; min-width:7em;}
-  .code.leer{font-family:inherit; font-style:italic; font-size:16px;}
-  .urteil{font-weight:700;}
-  .quelle{font-size:13px; color:var(--textgrau); margin-left:auto;}
-  .test{display:flex; flex-wrap:wrap; gap:10px; align-items:center; font-size:18px;}
   .gesperrt{color:var(--textgrau); font-style:italic;}
   footer{margin-top:24px; font-size:12px; color:var(--textgrau);}
-  @media (max-width:560px){ body{padding:12px;} .code{font-size:17px; min-width:5em;} }
+
+  /* ── Einlass: Ticket fährt in den Scanner ───────────────────────── */
+  .einlass{display:flex; align-items:center; gap:14px; margin:14px 0 4px; flex-wrap:wrap;}
+  .buehne{flex:1 1 380px; min-height:150px; display:flex; align-items:center; justify-content:center;
+    background:repeating-linear-gradient(45deg,#f3f6fa 0 12px,#eef2f7 12px 24px); border-radius:10px; padding:12px; overflow:hidden;}
+  .buehne .leer{color:var(--textgrau); font-style:italic;}
+  .scanner{flex:0 0 150px; border-radius:14px; background:#263238; color:#cfd8dc; padding:12px; text-align:center;
+    box-shadow:inset 0 -6px 0 #1b2327;}
+  .scanner .schlitz{height:8px; border-radius:4px; background:#111; margin:4px 6px 12px; position:relative; overflow:hidden;}
+  .scanner .schlitz::after{content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent,#ff5252,transparent); opacity:0;}
+  .scanner.liest .schlitz::after{animation:laser .5s ease-in-out 2;}
+  .scanner .led{width:34px; height:34px; border-radius:50%; margin:0 auto 8px; background:#455a64; border:3px solid #1b2327;}
+  .scanner.ja .led{background:#43a047; box-shadow:0 0 18px #43a047;}
+  .scanner.nein .led{background:#e53935; box-shadow:0 0 18px #e53935;}
+  .scanner .anzeige{font-family:Consolas,"Courier New",monospace; font-size:15px; letter-spacing:1px; background:#0d1417;
+    border-radius:4px; padding:6px 4px; min-height:2em;}
+  .scanner.ja .anzeige{color:#8bf28f;} .scanner.nein .anzeige{color:#ff8a80;}
+  @keyframes laser{0%{opacity:0; transform:translateX(-100%);} 50%{opacity:1;} 100%{opacity:0; transform:translateX(100%);}}
+  @keyframes reinfahren{from{transform:translateX(-60px) rotate(-3deg); opacity:0;} to{transform:none; opacity:1;}}
+  .buehne .ticket{animation:reinfahren .45s ease-out;}
+
+  /* ── Das Ticket ────────────────────────────────────────────────── */
+  .ticket{display:flex; width:100%; max-width:470px; background:var(--t-grund); border:2px solid var(--t-rand);
+    border-radius:10px; position:relative; box-shadow:0 3px 8px rgba(0,0,0,.12); font-family:Cambria,Georgia,serif;}
+  .ticket .haupt{flex:1; padding:0 0 10px; min-width:0;}
+  .ticket .kopf{background:var(--t-kopf); color:var(--t-kopftext); border-radius:7px 0 0 0; padding:6px 12px;
+    display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .ticket .kopf b{font-size:18px; letter-spacing:3px;}
+  .ticket .kopf span{font-size:12px; letter-spacing:1.5px; text-transform:uppercase; opacity:.9;}
+  .ticket .deko{color:var(--t-akzent); font-size:13px; letter-spacing:4px; text-align:center; margin:6px 0 0;}
+  .ticket .feld{padding:4px 12px 0;}
+  .ticket .feld small{display:block; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--textgrau);}
+  .ticket .code{font-family:Consolas,"Courier New",monospace; font-size:30px; font-weight:700; white-space:pre;
+    color:#1a1a1a; overflow:hidden; text-overflow:ellipsis;}
+  .ticket .code.leer{font-family:inherit; font-size:18px; font-weight:400; font-style:italic; color:var(--textgrau);}
+  .ticket .barcode{display:block; height:34px; width:85%; margin:6px 12px 0;}
+  .ticket .abriss{flex:0 0 74px; border-left:2px dashed var(--t-rand); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:6px 4px; position:relative;}
+  .ticket .abriss::before,.ticket .abriss::after{content:""; position:absolute; left:-10px; width:18px; height:18px;
+    border-radius:50%; background:var(--bg); border:2px solid var(--t-rand);}
+  .ticket .abriss::before{top:-11px;} .ticket .abriss::after{bottom:-11px;}
+  .ticket .abriss .klein{writing-mode:vertical-rl; transform:rotate(180deg); font-family:Consolas,"Courier New",monospace;
+    font-size:15px; font-weight:700; white-space:pre; max-height:120px; overflow:hidden;}
+  .ticket .abriss .wort{font-size:10px; letter-spacing:2px; color:var(--textgrau); margin-top:6px; text-transform:uppercase;}
+  .stempel{position:absolute; right:84px; bottom:8px; transform:rotate(-14deg); border:3px solid; border-radius:6px;
+    padding:2px 10px; font-family:"Segoe UI",system-ui,sans-serif; font-weight:800; font-size:20px; letter-spacing:2px;
+    background:rgba(255,255,255,.6); pointer-events:none;}
+  .stempel.ja{color:var(--gruen); border-color:var(--gruen);}
+  .stempel.nein{color:var(--rot); border-color:var(--rot);}
+  .buehne .stempel{animation:stempeln .25s ease-in .5s backwards;}
+  @keyframes stempeln{from{transform:rotate(-14deg) scale(2.2); opacity:0;} to{transform:rotate(-14deg) scale(1); opacity:1;}}
+
+  /* Mini-Tickets in der Liste */
+  .stapel{list-style:none; padding:0; margin:10px 0 0; display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:10px;}
+  .stapel li{margin:0;}
+  .stapel .ticket{max-width:none; box-shadow:none;}
+  .stapel .ticket .kopf{padding:3px 8px;} .stapel .ticket .kopf b{font-size:13px; letter-spacing:2px;}
+  .stapel .ticket .kopf span{font-size:10px;}
+  .stapel .ticket .deko,.stapel .ticket .barcode,.stapel .ticket .feld small{display:none;}
+  .stapel .ticket .code{font-size:20px;} .stapel .ticket .code.leer{font-size:14px;}
+  .stapel .ticket .abriss{flex-basis:52px;} .stapel .ticket .abriss .klein{font-size:11px; max-height:70px;}
+  .stapel .ticket .abriss .wort{display:none;}
+  .stapel .stempel{position:static; display:inline-block; margin:4px 8px 0; transform:rotate(-3deg); font-size:12px; padding:1px 6px; border-width:2px; animation:none;}
+  .stapel .quelle{font-size:12px; color:var(--textgrau); padding:2px 4px 0;}
+
+  .test{display:flex; flex-direction:column; gap:10px; align-items:stretch;}
+  .test .knoepfe{display:flex; flex-wrap:wrap; gap:10px;}
+  .test .info{font-size:17px;}
+
+  @media (max-width:560px){
+    body{padding:12px;}
+    .scanner{flex:1 1 100%; display:flex; align-items:center; gap:12px; text-align:left;}
+    .scanner .schlitz{display:none;} .scanner .led{margin:0;} .scanner .anzeige{flex:1;}
+    .ticket .code{font-size:24px;} .ticket .abriss{flex-basis:56px;} .stempel{right:62px;}
+  }
+  @media (prefers-reduced-motion:reduce){ .buehne .ticket,.buehne .stempel,.scanner.liest .schlitz::after{animation:none;} }
 </style>
 </head>
 <body>
@@ -55,21 +123,29 @@
     <h1 id="titel">Regel raten</h1>
     <p id="kontext"></p>
   </header>
-  <nav class="tabs" id="tabs" aria-label="Datensatz wählen"></nav>
+  <nav class="tabs" id="tabs" aria-label="Eingang wählen"></nav>
 
   <section class="karte" aria-labelledby="h-erkunden">
     <h2 id="h-erkunden">1 · Erkunden</h2>
     <p id="anleitung"></p>
     <div class="zeile">
-      <button class="primaer" id="ziehen">Code ziehen</button>
+      <button class="primaer" id="ziehen">Ticket ziehen</button>
       <span>oder</span>
       <label for="eingabe" class="zaehler">eigenen Code nachfragen:</label>
       <input type="text" id="eingabe" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <button id="fragen">Nachfragen</button>
+      <button id="fragen">Scannen</button>
+    </div>
+    <div class="einlass">
+      <div class="buehne" id="buehne"><span class="leer">Noch kein Ticket im Scanner.</span></div>
+      <div class="scanner" id="scanner" aria-hidden="true">
+        <div class="schlitz"></div>
+        <div class="led"></div>
+        <div class="anzeige" id="anzeige">BEREIT</div>
+      </div>
     </div>
     <div class="meldung" id="meldung" role="status" aria-live="polite">Noch nichts geprüft.</div>
     <p class="zaehler" id="zaehler"></p>
-    <ol class="log" id="log" aria-label="Bisher geprüfte Codes"></ol>
+    <ol class="stapel" id="log" aria-label="Bisher geprüfte Tickets"></ol>
   </section>
 
   <section class="karte" aria-labelledby="h-regel">
@@ -81,7 +157,7 @@
 
   <section class="karte" aria-labelledby="h-test">
     <h2 id="h-test">3 · Vorhersagetest</h2>
-    <p>Der Scanner zeigt dir Codes, die du noch nicht gesehen hast. Sag vorher, wie er entscheidet.</p>
+    <p>Der Scanner zeigt dir Tickets, die du noch nicht gesehen hast. Sag vorher, wie er entscheidet.</p>
     <button id="test-start" disabled>Test starten</button>
     <div id="test" aria-live="polite"></div>
   </section>
@@ -92,7 +168,6 @@
 <script>
 "use strict";
 /* ===== Datensätze: je Regel ein Eintrag, Auswahl über den URL-Hash ===== */
-var BUCHST = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 function zufall(n){ return Math.floor(Math.random() * n); }
 function wahl(arr){ return arr[zufall(arr.length)]; }
 
@@ -101,7 +176,9 @@ var SAETZE = {
     tab: "Parkett-Eingang",
     titel: "Der Einlass-Scanner",
     kontext: "Am Ballabend prüft der Scanner am Eingang jeden Ticketcode. Er kennt eine geheime Regel. Finde sie heraus.",
-    anleitung: "Zieh Codes aus dem Stapel der Gäste oder tipp einen eigenen Code ein. Der Scanner sagt nur „Einlass“ oder „abgewiesen“, nie warum.",
+    anleitung: "Zieh Tickets aus dem Stapel der Gäste oder tipp einen eigenen Code ein. Der Scanner sagt nur „Einlass“ oder „abgewiesen“, nie warum.",
+    // Aussehen des Tickets (verrät nichts über die Regel)
+    ticket: { kopf: "ABIBALL", unter: "Parkett", deko: "✦ BALLABEND ✦", farben: { grund: "#fffaf0", rand: "#14507d", kopf: "#14507d", kopftext: "#ffffff", akzent: "#c9a227" } },
     // Regel: ein Buchstabe A–F, Bindestrich, Platznummer 1–99 ohne führende Null
     pruefe: function(w){ return /^[A-F]-[1-9][0-9]?$/.test(w); },
     gueltig: function(){ return wahl("ABCDEF") + "-" + (1 + zufall(99)); },
@@ -130,7 +207,8 @@ var SAETZE = {
     tab: "VIP-Eingang",
     titel: "Der VIP-Scanner",
     kontext: "Am VIP-Eingang tragen die Tickets nur die Zeichen X und O. Auch hier gilt eine geheime Regel.",
-    anleitung: "Zieh Codes oder tipp eigene Codes aus X und O ein. Der Scanner sagt nur „Einlass“ oder „abgewiesen“.",
+    anleitung: "Zieh Tickets oder tipp eigene Codes aus X und O ein. Der Scanner sagt nur „Einlass“ oder „abgewiesen“.",
+    ticket: { kopf: "ABIBALL", unter: "VIP-Lounge", deko: "★ GOLDENES TICKET ★", farben: { grund: "#fff8dc", rand: "#8a6d1d", kopf: "#2b2b2b", kopftext: "#f5d76e", akzent: "#b8860b" } },
     // Regel: nicht leer, nie zwei O hintereinander, endet auf X
     pruefe: function(w){ return /^(X|OX)+$/.test(w); },
     gueltig: function(){ var s = "", k = 1 + zufall(5); for (var i = 0; i < k; i++) s += wahl(["X", "OX"]); return s; },
@@ -156,9 +234,83 @@ var state = { satz: null, id: "", log: [], gesehen: {}, test: null };
 function $(id){ return document.getElementById(id); }
 function anzeige(w){ return w === "" ? "(leer)" : w; }
 
+/* Barcode: Balkenbreiten aus den Zeichencodes, rein dekorativ.
+   Liefert nur Zahlen und feste Markup-Teile, nie Text aus der Eingabe. */
+function barcodeSvg(wort){
+  var balken = [2, 1, 2], i, c;                     // Startzeichen
+  var quelle = wort === "" ? "-" : wort;
+  for (i = 0; i < quelle.length; i++) {
+    c = quelle.charCodeAt(i);
+    balken.push(1 + (c & 3), 1 + ((c >> 2) & 1), 1 + ((c >> 3) & 3), 1 + ((c >> 5) & 1));
+  }
+  balken.push(2, 1, 2);                             // Stoppzeichen
+  var x = 0, rects = "";
+  for (i = 0; i < balken.length; i++) {
+    if (i % 2 === 0) rects += '<rect x="' + x + '" y="0" width="' + balken[i] + '" height="20"/>';
+    x += balken[i];
+  }
+  return '<svg class="barcode" viewBox="0 0 ' + x + ' 20" preserveAspectRatio="none" aria-hidden="true" fill="#1a1a1a">' + rects + '</svg>';
+}
+
+/* Ein Ticket als DOM-Knoten. urteil: true/false (Stempel) oder null (ungestempelt) */
+function ticketEl(wort, urteil){
+  var t = state.satz.ticket;
+  var el = document.createElement("div");
+  el.className = "ticket";
+  var haupt = document.createElement("div"); haupt.className = "haupt";
+  var kopf = document.createElement("div"); kopf.className = "kopf";
+  var b = document.createElement("b"); b.textContent = t.kopf;
+  var u = document.createElement("span"); u.textContent = t.unter;
+  kopf.appendChild(b); kopf.appendChild(u);
+  var deko = document.createElement("div"); deko.className = "deko"; deko.textContent = t.deko;
+  var feld = document.createElement("div"); feld.className = "feld";
+  var sm = document.createElement("small"); sm.textContent = "Ticketcode";
+  var code = document.createElement("div");
+  code.className = "code" + (wort === "" ? " leer" : "");
+  code.textContent = wort === "" ? "kein Code aufgedruckt" : wort;
+  feld.appendChild(sm); feld.appendChild(code);
+  var bc = document.createElement("div"); bc.innerHTML = barcodeSvg(wort);
+  haupt.appendChild(kopf); haupt.appendChild(deko); haupt.appendChild(feld); haupt.appendChild(bc);
+  var abriss = document.createElement("div"); abriss.className = "abriss";
+  var klein = document.createElement("div"); klein.className = "klein"; klein.textContent = wort === "" ? "–" : wort;
+  var w2 = document.createElement("div"); w2.className = "wort"; w2.textContent = "Abriss";
+  abriss.appendChild(klein); abriss.appendChild(w2);
+  el.appendChild(haupt); el.appendChild(abriss);
+  if (urteil === true || urteil === false) {
+    var st = document.createElement("div");
+    st.className = "stempel " + (urteil ? "ja" : "nein");
+    st.textContent = urteil ? "EINLASS" : "ABGEWIESEN";
+    haupt.appendChild(st);              // absolut zum Ticket; im Stapel fließt er unter den Code
+  }
+  return el;
+}
+
+function farbenSetzen(){
+  var f = state.satz.ticket.farben, s = document.documentElement.style;
+  if (!s || !s.setProperty) return;
+  s.setProperty("--t-grund", f.grund); s.setProperty("--t-rand", f.rand);
+  s.setProperty("--t-kopf", f.kopf); s.setProperty("--t-kopftext", f.kopftext); s.setProperty("--t-akzent", f.akzent);
+}
+
+function scannerZeigen(e){
+  var sc = $("scanner"), bu = $("buehne");
+  bu.textContent = "";
+  if (!e) {
+    sc.className = "scanner";
+    $("anzeige").textContent = "BEREIT";
+    var leer = document.createElement("span"); leer.className = "leer"; leer.textContent = "Noch kein Ticket im Scanner.";
+    bu.appendChild(leer);
+    return;
+  }
+  bu.appendChild(ticketEl(e.wort, e.ok));
+  sc.className = "scanner liest " + (e.ok ? "ja" : "nein");
+  $("anzeige").textContent = e.ok ? "EINLASS" : "ABGEWIESEN";
+}
+
 function waehle(id){
   if (!SAETZE[id]) id = "q2lk-ticket";
   state = { satz: SAETZE[id], id: id, log: [], gesehen: {}, test: null };
+  farbenSetzen();
   $("titel").textContent = state.satz.titel;
   $("kontext").textContent = state.satz.kontext;
   $("anleitung").textContent = state.satz.anleitung;
@@ -166,6 +318,7 @@ function waehle(id){
   $("meldung").className = "meldung";
   $("regel").value = ladeRegel(id);
   $("test").textContent = "";
+  scannerZeigen(null);
   Array.prototype.forEach.call($("tabs").children, function(b){
     b.setAttribute("aria-pressed", b.dataset.id === id ? "true" : "false");
   });
@@ -192,6 +345,7 @@ function ziehen(){
 
 function melde(e){
   var m = $("meldung");
+  scannerZeigen(e);
   if (e.wort === "") { m.textContent = state.satz.leer; m.className = "meldung witz"; return; }
   m.textContent = anzeige(e.wort) + (e.ok ? ": Einlass." : ": abgewiesen.");
   m.className = "meldung " + (e.ok ? "ok" : "nein");
@@ -202,25 +356,19 @@ function zeichne(){
   log.textContent = "";
   state.log.forEach(function(e){
     var li = document.createElement("li");
-    li.className = e.ok ? "ja" : "nein";
-    var c = document.createElement("span");
-    c.className = "code" + (e.wort === "" ? " leer" : "");
-    c.textContent = anzeige(e.wort);
-    var u = document.createElement("span");
-    u.className = "urteil";
-    u.textContent = e.ok ? "✔ Einlass" : "✘ abgewiesen";
-    var q = document.createElement("span");
+    li.appendChild(ticketEl(e.wort, e.ok));
+    var q = document.createElement("div");
     q.className = "quelle";
     q.textContent = e.quelle;
-    li.appendChild(c); li.appendChild(u); li.appendChild(q);
+    li.appendChild(q);
     log.appendChild(li);
   });
   var n = state.log.length, min = state.satz.min;
-  $("zaehler").textContent = n + " Code" + (n === 1 ? "" : "s") + " geprüft. Ziel: 5 bis 10.";
+  $("zaehler").textContent = n + " Ticket" + (n === 1 ? "" : "s") + " geprüft. Ziel: 5 bis 10.";
   var frei = n >= min;
   $("regel").disabled = !frei;
   $("test-start").disabled = !frei;
-  $("regel-sperre").textContent = frei ? "" : "Erst nach " + min + " geprüften Codes. Noch " + (min - n) + ".";
+  $("regel-sperre").textContent = frei ? "" : "Erst nach " + min + " geprüften Tickets. Noch " + (min - n) + ".";
 }
 
 /* Vorhersagetest: 6 ungesehene Codes, mindestens 4 Grenzfälle */
@@ -244,6 +392,7 @@ function testStarten(){
 
 function tippe(meinung){
   var t = state.test;
+  if (!t) return;
   t.tipps.push(meinung);
   t.pos++;
   zeigeTest();
@@ -264,18 +413,19 @@ function zeigeTest(){
   if (t.pos < t.codes.length) {
     var d = document.createElement("div");
     d.className = "test";
-    var info = document.createElement("span");
-    info.textContent = "Code " + (t.pos + 1) + " von " + t.codes.length + ":";
-    var c = document.createElement("span");
-    c.className = "code" + (t.codes[t.pos] === "" ? " leer" : "");
-    c.textContent = anzeige(t.codes[t.pos]);
+    var info = document.createElement("div");
+    info.className = "info";
+    info.textContent = "Ticket " + (t.pos + 1) + " von " + t.codes.length + ": Lässt der Scanner es durch?";
+    var kn = document.createElement("div");
+    kn.className = "knoepfe";
     var ja = document.createElement("button");
     ja.textContent = "✔ Einlass (J)";
     ja.addEventListener("click", function(){ tippe(true); });
     var nein = document.createElement("button");
     nein.textContent = "✘ abgewiesen (N)";
     nein.addEventListener("click", function(){ tippe(false); });
-    d.appendChild(info); d.appendChild(c); d.appendChild(ja); d.appendChild(nein);
+    kn.appendChild(ja); kn.appendChild(nein);
+    d.appendChild(info); d.appendChild(ticketEl(t.codes[t.pos], null)); d.appendChild(kn);
     box.appendChild(d);
     ja.focus();
     return;
@@ -288,27 +438,20 @@ function zeigeTest(){
     box.appendChild(m);
   } else {
     m.className = "meldung nein";
-    m.textContent = r.richtig + " von " + r.gesamt + " richtig. Bei diesen Codes lag deine Regel daneben:";
+    m.textContent = r.richtig + " von " + r.gesamt + " richtig. Bei diesen Tickets lag deine Regel daneben:";
     box.appendChild(m);
     var ol = document.createElement("ol");
-    ol.className = "log";
+    ol.className = "stapel";
     r.falsch.forEach(function(f){
       var li = document.createElement("li");
-      li.className = f.ok ? "ja" : "nein";
-      var c = document.createElement("span");
-      c.className = "code" + (f.wort === "" ? " leer" : "");
-      c.textContent = anzeige(f.wort);
-      var u = document.createElement("span");
-      u.className = "urteil";
-      u.textContent = f.ok ? "✔ Einlass" : "✘ abgewiesen";
-      li.appendChild(c); li.appendChild(u);
+      li.appendChild(ticketEl(f.wort, f.ok));
       ol.appendChild(li);
       state.gesehen[f.wort] = true;
       state.log.unshift({ wort: f.wort, ok: f.ok, quelle: "aus dem Test" });
     });
     box.appendChild(ol);
     var p = document.createElement("p");
-    p.textContent = "Pass deine Regel an und starte den Test neu. Die Codes stehen jetzt auch oben in der Liste.";
+    p.textContent = "Pass deine Regel an und starte den Test neu. Die Tickets liegen jetzt auch oben im Stapel.";
     box.appendChild(p);
     zeichne();
   }
