@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parabel-Regler</title>
+<style>
+  :root{
+    --haupt:#14507d; --rot:#b02020; --akzent:#8a5a2b; --papier:#f7efdc;
+    --rand:#d8cba8; --flaeche:#fffdf8; --text:#22303b; --leise:#4b5a66;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:#fff;color:var(--text);line-height:1.45;
+    font-family:system-ui,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:68rem;margin:0 auto;padding:1rem}
+  h1{font-size:1.4rem;margin:.1em 0;color:var(--haupt)}
+  .sub{margin:.2rem 0 .7rem;color:var(--leise);max-width:62ch}
+  .karte{background:var(--papier);border:1px solid var(--rand);border-radius:1rem;padding:1rem}
+  .layout{display:flex;flex-wrap:wrap;gap:1rem 1.25rem;align-items:flex-start}
+  .links{flex:3 1 34rem;min-width:0}
+  .rechts{flex:2 1 17rem;min-width:0;display:flex;flex-wrap:wrap;gap:1rem}
+  .rechts > .block{flex:1 1 17rem}
+
+  .gleichung{font-family:"Cambria Math","STIX Two Math",Georgia,"Times New Roman",serif;
+    font-size:clamp(1.6rem,5.5vw,2.3rem);font-weight:600;color:var(--haupt);
+    text-align:center;margin:0 0 .4rem;line-height:1.2}
+  .graph{position:relative;line-height:0}
+  .graph svg{width:100%;height:auto;display:block;background:var(--flaeche);
+    border:1px solid var(--rand);border-radius:.6rem}
+  .decke{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;
+    justify-content:center;text-align:center;padding:1rem;border-radius:.6rem;
+    background:rgba(247,239,220,.92);color:var(--haupt);font-weight:700;line-height:1.3;
+    font-size:clamp(1.1rem,3.6vw,1.8rem)}
+  .status{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem 1rem;margin:.7rem 0 0}
+  .anzahl{font-size:1.5rem;font-weight:800;color:var(--rot)}
+  .werte{color:var(--leise);font-size:1.05rem}
+
+  .gitter{stroke:#e6dcc2;stroke-width:1}
+  .rahmen{fill:none;stroke:var(--rand);stroke-width:1.5}
+  .achse{stroke:var(--haupt);stroke-width:3}
+  .tick{font-size:15px;fill:var(--leise);font-family:system-ui,sans-serif}
+  .achsname{font-size:19px;font-style:italic;font-weight:700;fill:var(--haupt);
+    font-family:Georgia,serif;paint-order:stroke;stroke:var(--flaeche);stroke-width:5px}
+  .parabel{fill:none;stroke:var(--haupt);stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
+  .nst{fill:var(--rot);stroke:#fff;stroke-width:2.5}
+  .sp{fill:var(--akzent);stroke:#fff;stroke-width:2.5}
+  .beschr{font-size:18px;font-weight:700;fill:var(--akzent);font-family:system-ui,sans-serif;
+    paint-order:stroke;stroke:var(--flaeche);stroke-width:5px;stroke-linejoin:round}
+
+  .block{background:var(--flaeche);border:1px solid var(--rand);border-radius:.8rem;padding:.8rem .9rem}
+  .reglerkopf{display:block;font-size:1.5rem;font-weight:800;color:var(--haupt);margin-bottom:.3rem}
+  .reglerkopf output{font-variant-numeric:tabular-nums}
+  .reglerzeile{display:flex;align-items:center;gap:.6rem}
+  .klein{font-size:.9rem;color:var(--leise);margin:.4rem 0 0}
+
+  .knopf{font:inherit;font-weight:700;min-height:3rem;min-width:3.4rem;padding:.4rem .9rem;
+    border-radius:.7rem;border:2px solid var(--haupt);background:var(--haupt);color:#fff;
+    cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  .knopf.sek{background:var(--flaeche);color:var(--haupt)}
+  .knopf:hover{filter:brightness(.95)}
+  .knopf:active{transform:translateY(1px)}
+  .knopf:focus-visible,.schalter input:focus-visible{outline:3px solid var(--akzent);outline-offset:2px}
+  .knopf[aria-disabled="true"]{opacity:.45;cursor:default}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1 1 auto;min-width:0;
+    height:2.8rem;margin:0;background:transparent;cursor:pointer}
+  input[type=range]:focus-visible{outline:none}
+  input[type=range]::-webkit-slider-runnable-track{height:.6rem;border-radius:.3rem;background:#b7c6d3}
+  input[type=range]::-moz-range-track{height:.6rem;border-radius:.3rem;background:#b7c6d3}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:2.2rem;
+    height:2.2rem;border-radius:50%;background:var(--haupt);border:3px solid #fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.4);margin-top:-.8rem}
+  input[type=range]::-moz-range-thumb{width:2.2rem;height:2.2rem;border-radius:50%;
+    background:var(--haupt);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+  input[type=range]:focus-visible::-webkit-slider-thumb{outline:3px solid var(--akzent);outline-offset:2px}
+  input[type=range]:focus-visible::-moz-range-thumb{outline:3px solid var(--akzent);outline-offset:2px}
+
+  .tipps{display:flex;gap:.6rem}
+  .tipp{flex:1 1 0;font-size:2rem;min-height:4.2rem}
+  .tipp[aria-disabled="true"]{opacity:.5}
+  .tipp.richtig{opacity:1;background:var(--haupt);color:#fff;border-color:var(--haupt)}
+  .tipp.falsch{opacity:1;background:var(--rot);color:#fff;border-color:var(--rot)}
+  .tipp.richtig::after{content:" \2713"}
+  .tipp.falsch::after{content:" \2717"}
+  .rueck{margin:.7rem 0 0;padding:.6rem .8rem;border-left:6px solid var(--rand);
+    background:var(--papier);border-radius:.4rem;min-height:3.4em}
+  .rueck.treffer{border-left-color:var(--haupt)}
+  .rueck.daneben{border-left-color:var(--rot)}
+  .zaehlzeile{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+    gap:.5rem 1rem;margin-top:.7rem}
+  .zaehler{margin:0;font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums}
+
+  .schalter{display:flex;align-items:center;gap:.7rem;min-height:3rem;font-weight:700;
+    color:var(--haupt);cursor:pointer}
+  .schalter input{width:1.7rem;height:1.7rem;accent-color:var(--haupt);cursor:pointer;margin:0}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1 id="titel">Parabel-Regler</h1>
+  <p class="sub" id="kopf"></p>
+
+  <div class="karte">
+    <div class="layout">
+      <section class="links" aria-label="Graph">
+        <div class="gleichung" id="gleichung"></div>
+        <div class="graph">
+          <svg id="graph" viewBox="0 0 720 480" role="img" aria-label="Graph">
+            <g id="gitterG"></g>
+            <g id="kurveG"></g>
+          </svg>
+          <div class="decke" id="decke">Erst tippen: Wie viele Nullstellen?</div>
+        </div>
+        <div class="status">
+          <span class="anzahl" id="anzahl" aria-live="polite"></span>
+          <span class="werte" id="werte"></span>
+        </div>
+      </section>
+
+      <section class="rechts" aria-label="Bedienung">
+        <div class="block">
+          <label class="reglerkopf" for="reg"><i id="regname">q</i> = <output id="regwert" aria-live="polite"></output></label>
+          <div class="reglerzeile">
+            <button type="button" class="knopf sek" id="minus">&minus;1</button>
+            <input type="range" id="reg" min="0" max="10" step="1" value="0">
+            <button type="button" class="knopf sek" id="plus">+1</button>
+          </div>
+          <p class="klein" id="fest"></p>
+        </div>
+
+        <div class="block" id="wett">
+          <div class="tipps" role="group" aria-label="Dein Tipp: Anzahl der Nullstellen">
+            <button type="button" class="knopf sek tipp" id="t0" aria-label="Tipp: 0 Nullstellen">0</button>
+            <button type="button" class="knopf sek tipp" id="t1" aria-label="Tipp: 1 Nullstelle">1</button>
+            <button type="button" class="knopf sek tipp" id="t2" aria-label="Tipp: 2 Nullstellen">2</button>
+          </div>
+          <p class="rueck" id="rueck" aria-live="polite"></p>
+          <div class="zaehlzeile">
+            <p class="zaehler" id="zaehler">Treffer: 0 von 0</p>
+            <button type="button" class="knopf sek" id="nullen">Zähler zurücksetzen</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <label class="schalter"><input type="checkbox" role="switch" id="wettschalter"> Wettmodus</label>
+          <p class="klein">Aus: Der Graph folgt dem Regler sofort.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+var SAETZE = {
+  "ma10-diskriminante": {
+    titel: "Nullstellen-Wette",
+    kopfzeile: "Mit q rutscht die Parabel y = x² − 10x + q nach oben oder unten. Tippe, wie viele Nullstellen sie hat, bevor der Graph erscheint.",
+    regler: { name: "q", min: 0, max: 45, step: 1, start: 9 },
+    fest: { name: "p", wert: -10 },
+    fenster: { xmin: -1, xmax: 11, ymin: -30, ymax: 25 },
+    gitter: { x: 1, y: 5, lx: 1, ly: 5 },
+    wettmodus: true
+  },
+  "ma10-p-regler": {
+    titel: "Parabel-Regler",
+    kopfzeile: "Ändere p und beobachte, wie sich Scheitelpunkt und Nullstellen von y = x² + p·x + 9 verschieben. Im Wettmodus tippst du vorher.",
+    regler: { name: "p", min: -10, max: 10, step: 1, start: 0 },
+    fest: { name: "q", wert: 9 },
+    fenster: { xmin: -11, xmax: 11, ymin: -20, ymax: 25 },
+    gitter: { x: 1, y: 5, lx: 2, ly: 5 },
+    wettmodus: false
+  }
+};
+
+/* ===== ab hier: Mechanik, unabhängig vom Datensatz ===== */
+
+var EPS = 1e-9;
+var VB = { b: 720, h: 480, l: 46, r: 18, o: 16, u: 36 };
+
+/* ---------- Logik, ohne DOM ---------- */
+
+function pqVon(satz, wert) {
+  return satz.regler.name === "p"
+    ? { p: wert, q: satz.fest.wert }
+    : { p: satz.fest.wert, q: wert };
+}
+
+/* nur intern, wird nirgends angezeigt */
+function diskriminante(p, q) {
+  return p * p / 4 - q;
+}
+
+function nullstellen(p, q) {
+  var d = diskriminante(p, q), m = -p / 2 + 0, w;
+  if (Math.abs(d) < EPS) return { anzahl: 1, x: [m] };
+  if (d < 0) return { anzahl: 0, x: [] };
+  w = Math.sqrt(d);
+  return { anzahl: 2, x: [m - w, m + w] };
+}
+
+function scheitel(p, q) {
+  return { x: -p / 2 + 0, y: q - p * p / 4 + 0 };
+}
+
+function zahlText(z) {
+  var r = Math.round(z * 100) / 100;
+  if (r === 0) r = 0;
+  return (r < 0 ? "−" : "") + String(Math.abs(r)).replace(".", ",");
+}
+
+function scheitelText(s) {
+  return "S(" + zahlText(s.x) + " | " + zahlText(s.y) + ")";
+}
+
+function termText(p, q) {
+  var t = "x²";
+  if (p !== 0) {
+    t += (p < 0 ? " − " : " + ") + (Math.abs(p) === 1 ? "" : zahlText(Math.abs(p))) + "x";
+  }
+  if (q !== 0) {
+    t += (q < 0 ? " − " : " + ") + zahlText(Math.abs(q));
+  }
+  return t;
+}
+
+function gleichungText(p, q) {
+  return termText(p, q) + " = 0";
+}
+
+function anzahlWort(n) {
+  return n === 1 ? "1 Nullstelle" : n + " Nullstellen";
+}
+
+function rueckmeldung(tipp, n) {
+  var erkl, es;
+  if (tipp === n) return { treffer: true, text: "Getroffen: " + anzahlWort(n) + "." };
+  erkl = n === 0 ? "die Parabel verläuft ganz oberhalb der x-Achse"
+    : n === 1 ? "die Parabel berührt die x-Achse nur"
+    : "die Parabel schneidet die x-Achse zweimal";
+  es = n === 1 ? "Es ist 1 Nullstelle" : "Es sind " + n + " Nullstellen";
+  return { treffer: false, text: "Daneben: " + es + ", " + erkl + "." };
+}
+
+function xText(x) {
+  var exakt = Math.abs(x - Math.round(x * 100) / 100) < EPS;
+  return "x " + (exakt ? "=" : "≈") + " " + zahlText(x);
+}
+
+function werteText(nst) {
+  if (nst.anzahl === 0) return "Die Parabel bleibt oberhalb der x-Achse.";
+  return nst.x.map(xText).join(" und ");
+}
+
+function klemme(satz, w) {
+  var r = satz.regler, dez = (String(r.step).split(".")[1] || "").length;
+  w = Math.round((w - r.min) / r.step) * r.step + r.min;
+  w = Math.min(r.max, Math.max(r.min, w));
+  return Number(w.toFixed(dez));
+}
+
+function satzIdAusHash(hash) {
+  var h = String(hash || "").replace(/^#/, "");
+  return Object.prototype.hasOwnProperty.call(SAETZE, h) ? h : Object.keys(SAETZE)[0];
+}
+
+/* ---------- Zustand ---------- */
+
+var state = {
+  id: null, satz: null, wert: 0,
+  wett: false, aufgedeckt: true,
+  tipp: null, rueck: null, treffer: 0, runden: 0
+};
+
+function ladeZustand(id) {
+  var s = SAETZE[id];
+  state.id = id;
+  state.satz = s;
+  state.wert = s.regler.start;
+  state.wett = !!s.wettmodus;
+  state.aufgedeckt = !state.wett;
+  state.tipp = null;
+  state.rueck = null;
+  state.treffer = 0;
+  state.runden = 0;
+}
+
+function aktuellePQ() {
+  return pqVon(state.satz, state.wert);
+}
+
+function setWert(w) {
+  if (!isFinite(w)) return false;
+  w = klemme(state.satz, w);
+  if (w === state.wert) return false;
+  state.wert = w;
+  if (state.wett) {
+    state.aufgedeckt = false;
+    state.tipp = null;
+    state.rueck = null;
+  }
+  return true;
+}
+
+function tippen(t) {
+  var pq, n;
+  if (!state.wett || state.aufgedeckt) return false;
+  pq = aktuellePQ();
+  n = nullstellen(pq.p, pq.q).anzahl;
+  state.tipp = t;
+  state.aufgedeckt = true;
+  state.runden += 1;
+  if (t === n) state.treffer += 1;
+  state.rueck = rueckmeldung(t, n);
+  return true;
+}
+
+function setWett(an) {
+  state.wett = !!an;
+  state.aufgedeckt = !state.wett;
+  state.tipp = null;
+  state.rueck = null;
+}
+
+function zaehlerNull() {
+  state.treffer = 0;
+  state.runden = 0;
+  state.tipp = null;
+  state.rueck = null;
+  state.aufgedeckt = !state.wett;
+}
+
+/* ---------- Anzeige ---------- */
+
+var el = {};
+
+function f1(n) { return n.toFixed(1); }
+
+function abbildung(f) {
+  var a = { l: VB.l, o: VB.o, w: VB.b - VB.l - VB.r, h: VB.h - VB.o - VB.u };
+  a.sx = function (x) { return a.l + (x - f.xmin) / (f.xmax - f.xmin) * a.w; };
+  a.sy = function (y) { return a.o + (f.ymax - y) / (f.ymax - f.ymin) * a.h; };
+  return a;
+}
+
+function inFenster(f, x, y) {
+  return x >= f.xmin - EPS && x <= f.xmax + EPS && y >= f.ymin - EPS && y <= f.ymax + EPS;
+}
+
+function gitterSvg(satz) {
+  var f = satz.fenster, g = satz.gitter, a = abbildung(f), s = [], i, v, pos;
+  s.push('<defs><clipPath id="plotClip"><rect x="' + f1(a.l) + '" y="' + f1(a.o) +
+    '" width="' + f1(a.w) + '" height="' + f1(a.h) + '"/></clipPath></defs>');
+  for (i = Math.ceil(f.xmin / g.x - EPS); i * g.x <= f.xmax + EPS; i++) {
+    pos = f1(a.sx(i * g.x));
+    s.push('<line class="gitter" x1="' + pos + '" y1="' + f1(a.o) + '" x2="' + pos +
+      '" y2="' + f1(a.o + a.h) + '"/>');
+  }
+  for (i = Math.ceil(f.ymin / g.y - EPS); i * g.y <= f.ymax + EPS; i++) {
+    pos = f1(a.sy(i * g.y));
+    s.push('<line class="gitter" x1="' + f1(a.l) + '" y1="' + pos + '" x2="' + f1(a.l + a.w) +
+      '" y2="' + pos + '"/>');
+  }
+  s.push('<rect class="rahmen" x="' + f1(a.l) + '" y="' + f1(a.o) + '" width="' + f1(a.w) +
+    '" height="' + f1(a.h) + '"/>');
+  for (i = Math.ceil(f.xmin / g.lx - EPS); i * g.lx <= f.xmax + EPS; i++) {
+    v = i * g.lx;
+    s.push('<text class="tick" x="' + f1(a.sx(v)) + '" y="' + f1(a.o + a.h + 22) +
+      '" text-anchor="middle">' + zahlText(v) + '</text>');
+  }
+  for (i = Math.ceil(f.ymin / g.ly - EPS); i * g.ly <= f.ymax + EPS; i++) {
+    v = i * g.ly;
+    s.push('<text class="tick" x="' + f1(a.l - 8) + '" y="' + f1(a.sy(v) + 5) +
+      '" text-anchor="end">' + zahlText(v) + '</text>');
+  }
+  if (f.ymin <= 0 && f.ymax >= 0) {
+    s.push('<line class="achse" x1="' + f1(a.l) + '" y1="' + f1(a.sy(0)) + '" x2="' +
+      f1(a.l + a.w) + '" y2="' + f1(a.sy(0)) + '"/>');
+    s.push('<text class="achsname" x="' + f1(a.l + a.w - 8) + '" y="' + f1(a.sy(0) - 9) +
+      '" text-anchor="end">x</text>');
+  }
+  if (f.xmin <= 0 && f.xmax >= 0) {
+    s.push('<line class="achse" x1="' + f1(a.sx(0)) + '" y1="' + f1(a.o) + '" x2="' +
+      f1(a.sx(0)) + '" y2="' + f1(a.o + a.h) + '"/>');
+    s.push('<text class="achsname" x="' + f1(a.sx(0) + 10) + '" y="' + f1(a.o + 20) +
+      '" text-anchor="start">y</text>');
+  }
+  return s.join("");
+}
+
+function kurveSvg(satz, p, q, nst, sch) {
+  var f = satz.fenster, a = abbildung(f), n = 240, pts = [], s = [], i, x, y, py, cx, cy, rechts;
+  for (i = 0; i <= n; i++) {
+    x = f.xmin + (f.xmax - f.xmin) * i / n;
+    y = x * x + p * x + q;
+    py = Math.max(-2000, Math.min(2000, a.sy(y)));
+    pts.push(f1(a.sx(x)) + " " + f1(py));
+  }
+  s.push('<g clip-path="url(#plotClip)"><path class="parabel" d="M' + pts.join(" L") + '"/></g>');
+  if (f.ymin <= 0 && f.ymax >= 0) {
+    nst.x.forEach(function (nx) {
+      if (nx >= f.xmin && nx <= f.xmax) {
+        s.push('<circle class="nst" cx="' + f1(a.sx(nx)) + '" cy="' + f1(a.sy(0)) + '" r="9"/>');
+      }
+    });
+  }
+  if (inFenster(f, sch.x, sch.y)) {
+    cx = a.sx(sch.x);
+    cy = a.sy(sch.y);
+    rechts = (cx - a.l) / a.w > 0.7;
+    s.push('<circle class="sp" cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="7"/>');
+    s.push('<text class="beschr" x="' + f1(cx + (rechts ? -12 : 12)) + '" y="' + f1(cy + 24) +
+      '" text-anchor="' + (rechts ? "end" : "start") + '">' + scheitelText(sch) + '</text>');
+  }
+  return s.join("");
+}
+
+function setKlasse(knoten, name, an) {
+  if (an) knoten.classList.add(name); else knoten.classList.remove(name);
+}
+
+function render() {
+  var s = state.satz, pq = aktuellePQ(), p = pq.p, q = pq.q;
+  var nst = nullstellen(p, q), sch = scheitel(p, q), zeigt = state.aufgedeckt;
+
+  el.gleichung.textContent = gleichungText(p, q);
+  el.regname.textContent = s.regler.name;
+  el.regwert.textContent = zahlText(state.wert);
+  el.reg.value = String(state.wert);
+  el.reg.setAttribute("aria-valuetext", s.regler.name + " = " + zahlText(state.wert));
+  el.fest.textContent = s.fest.name + " = " + zahlText(s.fest.wert) + " bleibt fest.";
+  el.minus.setAttribute("aria-disabled", state.wert <= s.regler.min ? "true" : "false");
+  el.plus.setAttribute("aria-disabled", state.wert >= s.regler.max ? "true" : "false");
+
+  el.kurveG.innerHTML = zeigt ? kurveSvg(s, p, q, nst, sch) : "";
+  el.decke.hidden = zeigt;
+  el.graph.setAttribute("aria-label", zeigt
+    ? "Graph von y = " + termText(p, q) + ". " + anzahlWort(nst.anzahl) + ". Scheitelpunkt " + scheitelText(sch) + "."
+    : "Graph verdeckt. Erst die Anzahl der Nullstellen tippen.");
+  el.anzahl.textContent = "Nullstellen: " + (zeigt ? nst.anzahl : "?");
+  el.werte.textContent = zeigt ? werteText(nst) : "";
+
+  el.wettschalter.checked = state.wett;
+  el.wett.hidden = !state.wett;
+  if (state.wett) {
+    el.rueck.textContent = state.rueck ? state.rueck.text : "Tippe mit den Knöpfen oder den Tasten 0, 1 und 2.";
+    setKlasse(el.rueck, "treffer", !!state.rueck && state.rueck.treffer);
+    setKlasse(el.rueck, "daneben", !!state.rueck && !state.rueck.treffer);
+    [0, 1, 2].forEach(function (i) {
+      var b = el["t" + i];
+      b.setAttribute("aria-disabled", zeigt ? "true" : "false");
+      setKlasse(b, "richtig", state.tipp !== null && nst.anzahl === i);
+      setKlasse(b, "falsch", state.tipp === i && nst.anzahl !== i);
+    });
+    el.zaehler.textContent = "Treffer: " + state.treffer + " von " + state.runden;
+  }
+}
+
+function waehle(hash) {
+  var s;
+  ladeZustand(satzIdAusHash(hash));
+  s = state.satz;
+  document.title = s.titel;
+  el.titel.textContent = s.titel;
+  el.kopf.textContent = s.kopfzeile;
+  el.reg.min = String(s.regler.min);
+  el.reg.max = String(s.regler.max);
+  el.reg.step = String(s.regler.step);
+  el.minus.textContent = "−" + zahlText(s.regler.step);
+  el.plus.textContent = "+" + zahlText(s.regler.step);
+  el.minus.setAttribute("aria-label", s.regler.name + " um " + zahlText(s.regler.step) + " verkleinern");
+  el.plus.setAttribute("aria-label", s.regler.name + " um " + zahlText(s.regler.step) + " vergrößern");
+  el.gitterG.innerHTML = gitterSvg(s);
+  render();
+}
+
+function aendereWert(w) {
+  setWert(w);
+  render();
+}
+
+function antippen(t) {
+  if (tippen(t)) render();
+}
+
+function taste(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "0" || e.key === "1" || e.key === "2") antippen(Number(e.key));
+}
+
+function init() {
+  ["titel", "kopf", "gleichung", "graph", "gitterG", "kurveG", "decke", "anzahl", "werte",
+   "wett", "t0", "t1", "t2", "rueck", "zaehler", "nullen", "regname", "regwert", "reg",
+   "minus", "plus", "fest", "wettschalter"].forEach(function (id) {
+    el[id] = document.getElementById(id);
+  });
+  el.reg.addEventListener("input", function () { aendereWert(Number(el.reg.value)); });
+  el.minus.addEventListener("click", function () { aendereWert(state.wert - state.satz.regler.step); });
+  el.plus.addEventListener("click", function () { aendereWert(state.wert + state.satz.regler.step); });
+  [0, 1, 2].forEach(function (i) {
+    el["t" + i].addEventListener("click", function () { antippen(i); });
+  });
+  el.wettschalter.addEventListener("change", function () {
+    setWett(el.wettschalter.checked);
+    render();
+  });
+  el.nullen.addEventListener("click", function () {
+    zaehlerNull();
+    render();
+  });
+  document.addEventListener("keydown", taste);
+  window.addEventListener("hashchange", function () { waehle(location.hash); });
+  waehle(location.hash);
+}
+
+init();
+</script>
+</body>
+</html>
