@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Umschläge öffnen und legen</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --papier:#f6efe2; --papierrand:#c9b48f; --klappe:#e9dcc4;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.5;}
+  .wrap{max-width:1040px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:14px 18px;
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;}
+  header.top h1{font-size:19px; margin:0;}
+  header.top p{margin:3px 0 0; font-size:13.5px; opacity:.92;}
+  .badge{background:#fff; color:var(--haupt); font-weight:700; border-radius:6px; padding:5px 11px; font-size:13px;}
+  button{font:inherit;}
+  button:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+  .hinweis{background:var(--hell); border-left:4px solid var(--haupt); border-radius:0 6px 6px 0;
+    padding:10px 14px; margin:14px 0; font-size:14px;}
+
+  /* Umschläge */
+  .stapel{display:flex; flex-wrap:wrap; gap:14px; margin:16px 0;}
+  .umschlag{position:relative; width:150px; height:104px; border:2px solid var(--papierrand);
+    border-radius:6px; background:var(--papier); cursor:pointer; padding:0; overflow:hidden;
+    transition:transform .15s;}
+  .umschlag:hover:not(:disabled){transform:translateY(-3px);}
+  .umschlag::before{content:""; position:absolute; left:0; right:0; top:0; height:58px;
+    background:var(--klappe); clip-path:polygon(0 0,100% 0,50% 100%); border-bottom:1px solid var(--papierrand);
+    transform-origin:top; transition:transform .35s;}
+  .umschlag.offen::before{transform:scaleY(-1); opacity:.55;}
+  .umschlag .buchstabe{position:absolute; left:0; right:0; bottom:8px; text-align:center;
+    font-size:30px; font-weight:800; color:var(--haupt);}
+  .umschlag .titel{position:absolute; left:6px; right:6px; top:62px; text-align:center; font-size:11.5px;
+    color:var(--textgrau); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .umschlag.aktiv{border-color:var(--orange); box-shadow:0 0 0 3px #fbe1c8;}
+  .umschlag.erledigt{border-color:var(--gruen);}
+  .umschlag .schloss{position:absolute; top:6px; right:8px; font-size:18px;}
+  .umschlag:disabled{opacity:.45; cursor:not-allowed;}
+
+  .buehne{border:1.5px solid var(--grau); border-radius:8px; background:#fff; padding:14px 16px; margin-top:6px;}
+  .buehne h2{margin:0 0 4px; font-size:18px; color:var(--haupt);}
+  .auftrag{margin:0 0 12px; font-size:14.5px;}
+  .codefeld{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0;}
+  .codefeld input{font-size:20px; padding:6px 10px; width:9em; border:2px solid var(--grau); border-radius:6px;
+    letter-spacing:.15em; text-transform:uppercase;}
+  .lesen{font-size:15px;}
+  .lesen h3{margin:.4em 0 .2em; color:var(--haupt);}
+
+  .ablage-titel, .feld-titel{font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--haupt); margin:0 0 6px; font-weight:700;}
+  .ablage{display:flex; flex-wrap:wrap; gap:8px; min-height:52px; padding:8px; border:2px dashed var(--grau);
+    border-radius:8px; background:#f8fafc; margin-bottom:14px;}
+  .karte{border:1.5px solid var(--grau); background:#fff; border-radius:7px; padding:9px 12px; cursor:pointer;
+    font-size:14.5px; text-align:left; color:var(--text); max-width:100%;}
+  .karte:hover{border-color:var(--akzent); background:var(--hell);}
+  .karte[aria-pressed=true]{border-color:var(--orange); border-width:2.5px; background:#fdf1e5; font-weight:700;}
+  .karte.richtig{border-color:var(--gruen); background:var(--gruenhell);}
+  .karte.falsch{border-color:var(--rot); background:var(--rothell);}
+  .warum{display:block; font-size:12.5px; color:var(--textgrau); font-weight:400; margin-top:3px;}
+
+  .felder{display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+  .feld{border:2px solid var(--grau); border-radius:8px; padding:8px; min-height:74px; background:#fcfdff; cursor:pointer;}
+  .feld.ziel{border-color:var(--akzent); background:var(--hell);}
+  .feld .inhalt{display:flex; flex-direction:column; gap:6px; margin-top:6px;}
+  .reihe{display:flex; flex-direction:column; gap:8px;}
+  .platz{display:flex; gap:10px; align-items:stretch;}
+  .platz .nr{flex:0 0 34px; display:flex; align-items:center; justify-content:center; font-weight:800;
+    color:var(--haupt); background:var(--hell); border-radius:6px;}
+  .platz .feld{flex:1; min-height:50px;}
+
+  .leiste{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; align-items:center;}
+  .knopf{padding:9px 16px; border-radius:7px; border:1.5px solid var(--haupt); background:var(--haupt);
+    color:#fff; cursor:pointer; font-weight:600; font-size:14px;}
+  .knopf.zweit{background:#fff; color:var(--haupt);}
+  .knopf:disabled{opacity:.45; cursor:not-allowed;}
+  .meldung{font-size:14.5px; font-weight:600;}
+  .meldung.gut{color:var(--gruen);} .meldung.schlecht{color:var(--rot);}
+  .liste a{display:block; padding:8px 0; color:var(--haupt);}
+  footer{margin-top:20px; font-size:12px; color:var(--textgrau);}
+  @media (max-width:560px){ .umschlag{width:120px; height:90px;} .umschlag::before{height:48px;} .umschlag .titel{top:50px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1 id="titel">Umschläge</h1><p id="untertitel"></p></div>
+    <span class="badge" id="badge"></span>
+  </header>
+  <div class="hinweis" id="hinweis"></div>
+  <div class="stapel" id="stapel" role="group" aria-label="Umschläge"></div>
+  <div id="buehne"></div>
+  <div class="leiste"><button class="knopf zweit" id="neustart" type="button">Alles neu starten</button></div>
+  <footer>Klick auf eine Karte, dann auf den Platz, an den sie gehört. Klick auf eine gelegte Karte legt sie zurück.</footer>
+</div>
+
+<script>
+/* ===== Datensätze: eine Stunde = ein Eintrag. Aufruf: umschlag.html#schluessel ===== */
+var SAETZE = {
+
+  "if6-daten": {
+    titel: "Was verrät etwas über mich?", untertitel: "Informatik 6 · Wie funktioniert das Internet?", badge: "Doppelstunde 6",
+    hinweis: "Öffnet Umschlag A. Legt jede Datenkarte in das passende Feld und prüft dann.",
+    umschlaege: [
+      { id: "A", titel: "Datenkarten", modus: "zuordnen",
+        auftrag: "Kann ein Fremder mit dieser Angabe herausfinden, wer oder wo jemand ist?",
+        kategorien: ["verrät etwas über eine Person", "verrät nichts über eine Person"],
+        karten: [
+          { t: "🪪 Vor- und Nachname: Kim Beispiel", k: 0, warum: "Der Name zeigt direkt, wer es ist." },
+          { t: "🎂 Geburtstag: 14. März", k: 0, warum: "Zusammen mit Name oder Schule findet man die Person." },
+          { t: "🏠 Wohnadresse: Musterweg 7", k: 0, warum: "Sie verrät, wo jemand wohnt." },
+          { t: "📱 Handynummer: 0151 …", k: 0, warum: "Über die Nummer erreicht man genau eine Person." },
+          { t: "🖼 Foto vom Gesicht", k: 0, warum: "Am Gesicht erkennt man die Person." },
+          { t: "📍 Standort des Handys gerade jetzt", k: 0, warum: "Er zeigt, wo jemand in diesem Moment ist." },
+          { t: "🏫 Schule und Klasse: 5c", k: 0, warum: "Damit weiß ein Fremder, wo die Person jeden Tag ist." },
+          { t: "🌐 IP-Adresse des Anschlusses zu Hause", k: 0, warum: "Sie zeigt, von welchem Anschluss ein Paket kommt." },
+          { t: "🌡 Temperatur in der Stadt heute: 12 °C", k: 1, warum: "Gilt für alle, sagt nichts über eine Person." },
+          { t: "🕒 Uhrzeit: 10:15", k: 1, warum: "Gilt für alle." },
+          { t: "🗼 Hauptstadt von Frankreich: Paris", k: 1, warum: "Allgemeines Wissen, keine Person." },
+          { t: "📊 Messwert der Station Grönland: −8 °C", k: 1, warum: "Ein Messwert über das Wetter, nicht über einen Menschen." }
+        ] }
+    ]
+  },
+
+  "q2-scanner": {
+    titel: "Hack the Scanner", untertitel: "Informatik Q2 LK · Formale Sprachen und Automaten", badge: "Doppelstunde Std. 2–3",
+    hinweis: "Umschlag B bleibt zu, bis euer Scanner gehackt wurde. Dann nennt euch die Lehrkraft den Code.",
+    umschlaege: [
+      { id: "B", titel: "Versiegelt", modus: "lesen", code: "ZF",
+        codeHinweis: "Den Code nennt die Lehrkraft, sobald euer Scanner gehackt wurde.",
+        inhalt: "<h3>Die Grube z<sub>F</sub></h3><p>Wer hier landet, kommt nicht mehr heraus, egal welches Zeichen noch kommt. Die Grube ist kein Endzustand und hat eine Schleife für <b>jedes Zeichen</b>.</p><p>Zeichnet die Grube auf die Rückseite eines leeren Tickets und legt sie zu eurem Scanner. Jedes Zeichen, für das euer Scanner bisher keinen Pfeil hatte, führt ab jetzt in die Grube: Ergänzt in jedem Zustand einen Pfeil <b>„jedes andere Zeichen“ → z<sub>F</sub></b> (Pfeil mit Bleistift aufs Papier unter den Karten oder freie Pfeilkarte).</p><p>Prüft danach eure Hack-Tickets noch einmal. Welche kommen jetzt nicht mehr durch?</p>" }
+    ]
+  },
+
+  "ma10-pq": {
+    titel: "Viète schreibt das Rezept mit Buchstaben", untertitel: "Mathematik 10 · Quadratische Gleichungen", badge: "Stunde 7",
+    hinweis: "Öffnet Umschlag A. Bringt die Streifen in die richtige Reihenfolge. Ein Streifen passt nicht, er kommt zu „übrig“. Die Zahlenrechnung auf dem AB hilft.",
+    umschlaege: [
+      { id: "A", titel: "Herleitung", modus: "ordnen",
+        auftrag: "Von x² + px + q = 0 bis zur Formel: Welcher Schritt kommt wann? Schreibt danach die Reihenfolge auf das AB neben die Zahlenrechnung.",
+        karten: [
+          { t: "x² + px + q = 0", warum: "Start: die Gleichung in Normalform." },
+          { t: "x² + px = −q", warum: "q auf die andere Seite, wie bei 6x = −5." },
+          { t: "x² + px + (p/2)² = (p/2)² − q", warum: "Quadratische Ergänzung: das Eckquadrat (p/2)² auf beiden Seiten." },
+          { t: "(x + p/2)² = (p/2)² − q", warum: "Links steht jetzt ein Binom, wie (x + 3)²." },
+          { t: "x + p/2 = ± √((p/2)² − q)", warum: "Wurzel ziehen, zwei Vorzeichen." },
+          { t: "x = −p/2 ± √((p/2)² − q)", warum: "Ziel: p/2 auf die andere Seite." }
+        ],
+        ablenker: [ { t: "(x + p)² = p² − q", warum: "Hier fehlt das Halbieren. Mit p = 6 käme (x + 6)² heraus, richtig ist (x + 3)²." } ] }
+    ]
+  },
+
+  "ma10-tresor": {
+    titel: "Codeknacker Viète", untertitel: "Mathematik 10 · Quadratische Gleichungen", badge: "Stunde 12",
+    hinweis: "Der Tresor öffnet sich nur mit dem richtigen Code aus den Ziffern der Stationen S1 bis S4.",
+    umschlaege: [
+      { id: "T", titel: "Tresor", modus: "lesen", code: "5496", codeTreffer: true,
+        codeHinweis: "Vier Ziffern, S1 bis S4 in dieser Reihenfolge.",
+        inhalt: "<p style='letter-spacing:.15em;font-weight:700;color:#8a5a1a'>AMT FÜR VERBOTENE ZAHLEN · Abteilung Negative Zahlen · Aktenzeichen −3</p><h3>Vorladung</h3><p>zur Anhörung über die Sperre negativer Lösungen</p><p><b>An:</b> die Klasse, zu Händen aller, die einen Antrag auf Zulassung gestellt haben.</p><p>Das Amt hat die Anträge auf Zulassung negativer Lösungen erhalten, die seit der zweiten Stunde in euren Heften liegen. Es sind inzwischen viele. Das Amt kann sie nicht ohne Anhörung bearbeiten und lädt die Klasse deshalb vor.</p><p><b>Zeit:</b> in der nächsten Mathematikstunde<br><b>Ort:</b> euer Klassenraum<br><b>Gegenstand:</b> eure Anträge auf Zulassung negativer Lösungen<br><b>Mitzubringen:</b> alle Anträge aus dem Heft, mit der Probe in einer Zeile<br><b>Bei Fernbleiben:</b> Wer fehlt, bleibt gesperrt.</p><p>Das Amt entscheidet nach der Anhörung, ob die Sperre bleibt. <i>Bringt eure Anträge mit.</i></p><p>Mit amtlichem Gruß<br>Das Amt für verbotene Zahlen</p>" }
+    ]
+  }
+};
+
+/* ===== ab hier: Mechanik, unabhängig vom Datensatz ===== */
+var state = { key: null, satz: null, offen: {}, aktiv: null, lage: {}, auswahl: null, geprueft: {} };
+
+function el(tag, attrs, kinder) {
+  var e = document.createElement(tag);
+  if (attrs) for (var a in attrs) {
+    if (a === "text") e.textContent = attrs[a];
+    else if (a === "html") e.innerHTML = attrs[a];
+    else if (a === "cls") e.className = attrs[a];
+    else if (a.slice(0, 2) === "on") e.addEventListener(a.slice(2), attrs[a]);
+    else e.setAttribute(a, attrs[a]);
+  }
+  (kinder || []).forEach(function (k) { if (k) e.appendChild(k); });
+  return e;
+}
+
+function mischen(liste) {
+  var a = liste.slice();
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+
+function speicherName() { return "umschlag:" + state.key; }
+function speichern() {
+  try { localStorage.setItem(speicherName(), JSON.stringify({ offen: state.offen, lage: state.lage, reihenfolge: state.reihenfolge })); } catch (e) {}
+}
+function laden() {
+  try { var s = JSON.parse(localStorage.getItem(speicherName()) || "null"); if (s) { state.offen = s.offen || {}; state.lage = s.lage || {}; state.reihenfolge = s.reihenfolge || {}; } } catch (e) {}
+}
+
+function umschlagVon(id) { return state.satz.umschlaege.filter(function (u) { return u.id === id; })[0]; }
+
+/* Karten eines Umschlags mit stabilen IDs: k0, k1, … (Ablenker hinten) */
+function kartenVon(u) {
+  var alle = (u.karten || []).map(function (k, i) { return { id: "k" + i, t: k.t, k: k.k, pos: i, warum: k.warum, ablenker: false }; });
+  (u.ablenker || []).forEach(function (k, i) { alle.push({ id: "a" + i, t: k.t, warum: k.warum, ablenker: true }); });
+  return alle;
+}
+
+function anzahlGewaehlt() {
+  return state.satz.umschlaege.filter(function (u) { return state.offen[u.id] && !u.frei; }).length;
+}
+
+function oeffnen(u) {
+  if (!state.offen[u.id]) {
+    if (state.satz.wahl && !u.frei && anzahlGewaehlt() >= state.satz.wahl) return;
+    if (u.code) { state.aktiv = u.id; zeichnen(); return; }
+    state.offen[u.id] = true;
+  }
+  state.aktiv = u.id; state.auswahl = null; speichern(); zeichnen();
+}
+
+function codePruefen(u, wert) {
+  var soll = String(u.code).toUpperCase(), ist = String(wert).trim().toUpperCase();
+  if (ist === soll) { state.offen[u.id] = true; speichern(); zeichnen(); return null; }
+  if (u.codeTreffer && ist.length === soll.length) {
+    var n = 0; for (var i = 0; i < soll.length; i++) if (soll[i] === ist[i]) n++;
+    return n + " von " + soll.length + " Stellen stimmen.";
+  }
+  return "Der Code stimmt nicht.";
+}
+
+/* Lage: state.lage[umschlagId][kartenId] = Ziel (Kategorie-Index, Platz-Index oder "uebrig"); fehlt = Ablage */
+function lageVon(uid) { if (!state.lage[uid]) state.lage[uid] = {}; return state.lage[uid]; }
+
+function kartenKlick(uid, kid) {
+  var l = lageVon(uid);
+  if (l[kid] !== undefined && state.auswahl !== kid) { delete l[kid]; state.auswahl = null; delete state.geprueft[uid]; speichern(); zeichnen(); return; }
+  state.auswahl = (state.auswahl === kid) ? null : kid; zeichnen();
+}
+
+function zielKlick(uid, ziel, u) {
+  if (state.auswahl === null) return;
+  var l = lageVon(uid);
+  if (u.modus === "ordnen" && ziel !== "uebrig") {
+    for (var k in l) if (l[k] === ziel) delete l[k];   // ein Platz, eine Karte
+  }
+  l[state.auswahl] = ziel; state.auswahl = null; delete state.geprueft[uid]; speichern(); zeichnen();
+}
+
+/* Reine Prüflogik, ohne Anzeige */
+function bewerten(u, lage) {
+  var ergebnis = {};
+  kartenVon(u).forEach(function (c) {
+    var ist = lage[c.id];
+    var soll = c.ablenker ? (u.modus === "ordnen" ? "uebrig" : "nirgends") : (u.modus === "ordnen" ? c.pos : c.k);
+    ergebnis[c.id] = (ist === soll);
+  });
+  return ergebnis;
+}
+
+function zeichnen() {
+  var s = state.satz;
+  document.getElementById("titel").textContent = s.titel;
+  document.getElementById("untertitel").textContent = s.untertitel || "";
+  document.getElementById("badge").textContent = s.badge || "";
+  document.getElementById("hinweis").textContent = s.hinweis || "";
+  var stapel = document.getElementById("stapel"); stapel.innerHTML = "";
+  var voll = s.wahl && anzahlGewaehlt() >= s.wahl;
+  s.umschlaege.forEach(function (u) {
+    var cls = "umschlag" + (state.offen[u.id] ? " offen" : "") + (state.aktiv === u.id ? " aktiv" : "");
+    var b = el("button", { cls: cls, type: "button", "aria-label": "Umschlag " + u.id + ": " + u.titel + (state.offen[u.id] ? ", geöffnet" : ", verschlossen"),
+      onclick: function () { oeffnen(u); } }, [
+      el("span", { cls: "titel", text: u.titel }),
+      el("span", { cls: "buchstabe", text: u.id }),
+      u.code && !state.offen[u.id] ? el("span", { cls: "schloss", text: "🔒", "aria-hidden": "true" }) : null
+    ]);
+    if (voll && !u.frei && !state.offen[u.id]) b.disabled = true;
+    stapel.appendChild(b);
+  });
+  var bu = document.getElementById("buehne"); bu.innerHTML = "";
+  if (!state.aktiv) {
+    bu.appendChild(el("p", { cls: "auftrag", text: s.wahl ? "Wählt " + s.wahl + " Umschläge. Geöffnet: " + anzahlGewaehlt() + " von " + s.wahl + "." : "Tippt auf einen Umschlag, um ihn zu öffnen." }));
+    return;
+  }
+  var u = umschlagVon(state.aktiv);
+  var box = el("section", { cls: "buehne", "aria-live": "polite" }, [el("h2", { text: "Umschlag " + u.id + " · " + u.titel })]);
+  bu.appendChild(box);
+  if (u.code && !state.offen[u.id]) {
+    var inp = el("input", { type: "text", inputmode: u.code.match(/^\d+$/) ? "numeric" : "text", "aria-label": "Code", autocomplete: "off" });
+    var msg = el("span", { cls: "meldung schlecht" });
+    var probe = function () { var r = codePruefen(u, inp.value); if (r) msg.textContent = r; };
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter") probe(); });
+    box.appendChild(el("p", { cls: "auftrag", text: "Verschlossen. " + (u.codeHinweis || "") }));
+    box.appendChild(el("div", { cls: "codefeld" }, [inp, el("button", { cls: "knopf", type: "button", text: "Öffnen", onclick: probe }), msg]));
+    return;
+  }
+  if (u.auftrag) box.appendChild(el("p", { cls: "auftrag", text: u.auftrag }));
+  if (u.modus === "lesen") { box.appendChild(el("div", { cls: "lesen", html: u.inhalt || "" })); return; }
+
+  var lage = lageVon(u.id);
+  var karten = kartenVon(u);
+  if (!state.reihenfolge) state.reihenfolge = {};
+  if (!state.reihenfolge[u.id]) { state.reihenfolge[u.id] = mischen(karten.map(function (c) { return c.id; })); speichern(); }
+  var nachId = {}; karten.forEach(function (c) { nachId[c.id] = c; });
+  var bew = state.geprueft[u.id];
+
+  function karteKnopf(c) {
+    var cls = "karte" + (bew ? (bew[c.id] ? " richtig" : " falsch") : "");
+    var b = el("button", { cls: cls, type: "button", "aria-pressed": state.auswahl === c.id ? "true" : "false",
+      onclick: function (e) { e.stopPropagation(); kartenKlick(u.id, c.id); } }, [el("span", { text: c.t })]);
+    if (bew && c.warum) b.appendChild(el("span", { cls: "warum", text: (bew[c.id] ? "✓ " : "✗ ") + c.warum }));
+    return b;
+  }
+
+  var ablage = el("div", { cls: "ablage" });
+  state.reihenfolge[u.id].forEach(function (id) { if (lage[id] === undefined) ablage.appendChild(karteKnopf(nachId[id])); });
+  box.appendChild(el("p", { cls: "ablage-titel", text: "Inhalt des Umschlags" }));
+  box.appendChild(ablage);
+
+  function feld(titel, ziel, extraCls) {
+    var f = el("div", { cls: "feld" + (state.auswahl !== null ? " ziel" : "") + (extraCls || ""), role: "button", tabindex: "0",
+      "aria-label": "Ablegen in: " + titel,
+      onclick: function () { zielKlick(u.id, ziel, u); },
+      onkeydown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); zielKlick(u.id, ziel, u); } } },
+      [el("div", { cls: "feld-titel", text: titel })]);
+    var inh = el("div", { cls: "inhalt" });
+    karten.forEach(function (c) { if (lage[c.id] === ziel) inh.appendChild(karteKnopf(c)); });
+    f.appendChild(inh);
+    return f;
+  }
+
+  if (u.modus === "zuordnen") {
+    var felder = el("div", { cls: "felder" });
+    u.kategorien.forEach(function (k, i) { felder.appendChild(feld(k, i)); });
+    if (u.ablenker && u.ablenker.length) felder.appendChild(feld("passt nirgends", "nirgends"));
+    box.appendChild(felder);
+  } else if (u.modus === "ordnen") {
+    var reihe = el("div", { cls: "reihe" });
+    (u.karten || []).forEach(function (_, i) {
+      reihe.appendChild(el("div", { cls: "platz" }, [el("div", { cls: "nr", text: String(i + 1) }), feld("Schritt " + (i + 1), i)]));
+    });
+    if (u.ablenker && u.ablenker.length) reihe.appendChild(el("div", { cls: "platz" }, [el("div", { cls: "nr", text: "–" }), feld("übrig", "uebrig")]));
+    box.appendChild(reihe);
+  }
+
+  var leiste = el("div", { cls: "leiste" });
+  var meldung = el("span", { cls: "meldung" });
+  var alleGelegt = karten.every(function (c) { return lage[c.id] !== undefined; });
+  if (u.pruefen !== false) {
+    var pk = el("button", { cls: "knopf", type: "button", text: "Prüfen", onclick: function () {
+      state.geprueft[u.id] = bewerten(u, lage); zeichnen(); } });
+    if (!alleGelegt) pk.disabled = true;
+    leiste.appendChild(pk);
+    if (bew) {
+      var n = karten.filter(function (c) { return bew[c.id]; }).length;
+      meldung.textContent = n === karten.length ? "Alles richtig." : n + " von " + karten.length + " richtig. Die roten Karten noch einmal legen.";
+      meldung.className = "meldung " + (n === karten.length ? "gut" : "schlecht");
+      if (n < karten.length) leiste.appendChild(el("button", { cls: "knopf zweit", type: "button", text: "Falsche zurücklegen", onclick: function () {
+        karten.forEach(function (c) { if (!bew[c.id]) delete lage[c.id]; }); delete state.geprueft[u.id]; speichern(); zeichnen(); } }));
+    } else if (!alleGelegt) { meldung.textContent = "Erst alle Karten legen."; }
+  } else {
+    meldung.textContent = alleGelegt ? "Alles gelegt. Haltet euren Bau auf dem AB fest." : "Hier wird nichts geprüft. Ihr entscheidet.";
+  }
+  leiste.appendChild(meldung);
+  box.appendChild(leiste);
+}
+
+function start() {
+  var hash = decodeURIComponent((location.hash || "").slice(1));
+  var teile = hash.split("/"); var key = teile[0];
+  if (!SAETZE[key]) {
+    document.getElementById("titel").textContent = "Umschläge öffnen und legen";
+    document.getElementById("hinweis").textContent = "Wähle einen Datensatz.";
+    var bu = document.getElementById("buehne"); bu.innerHTML = "";
+    var l = el("div", { cls: "liste" });
+    Object.keys(SAETZE).forEach(function (k) { l.appendChild(el("a", { href: "#" + k, text: SAETZE[k].badge + " · " + SAETZE[k].titel })); });
+    bu.appendChild(l); document.getElementById("stapel").innerHTML = ""; return;
+  }
+  state = { key: key, satz: SAETZE[key], offen: {}, aktiv: null, lage: {}, auswahl: null, geprueft: {}, reihenfolge: {} };
+  laden();
+  if (teile[1] && umschlagVon(teile[1])) state.aktiv = teile[1];
+  zeichnen();
+}
+
+document.getElementById("neustart").addEventListener("click", function () {
+  if (!state.key) return;
+  try { localStorage.removeItem(speicherName()); } catch (e) {}
+  start();
+});
+window.addEventListener("hashchange", start);
+start();
+</script>
+</body>
+</html>
