@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Regex-Golf</title>
+<style>
+  :root{
+    --haupt:#14507d; --akzent:#2c7bb6; --hell:#e3eef8;
+    --gruen:#2a7a3b; --gruenhell:#e8f3ea; --orange:#c45e00; --orangehell:#fdf1e5;
+    --rot:#b02020; --rothell:#fdecea; --grau:#c9d6e3; --gelb:#ffe58a;
+    --text:#2b2b2b; --textgrau:#555; --bg:#fbfcfe;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; padding:18px; font-family:"Segoe UI",Cambria,Georgia,system-ui,sans-serif;
+    color:var(--text); background:var(--bg); line-height:1.45;}
+  .wrap{max-width:900px; margin:0 auto;}
+  header.top{background:var(--haupt); color:#fff; border-radius:8px; padding:14px 18px;}
+  header.top h1{font-size:23px; margin:0;}
+  header.top p{margin:4px 0 0; font-size:15.5px; opacity:.92;}
+  button{font-family:inherit; font-size:16px; min-height:44px; padding:8px 14px; border-radius:6px; cursor:pointer;
+    border:1px solid var(--grau); background:#fff; color:var(--haupt);}
+  button.primaer{background:var(--haupt); color:#fff; border-color:var(--haupt); font-weight:700;}
+  button:focus-visible,input:focus-visible{outline:3px solid var(--orange); outline-offset:2px;}
+  section.karte{background:#fff; border:1px solid var(--grau); border-radius:8px; padding:14px 16px; margin:14px 0;}
+  section.karte h2{font-size:18px; margin:0 0 8px; color:var(--haupt);}
+  .auftrag{font-size:16px; margin:0 0 10px;}
+  .eingabe{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .eingabe label{font-weight:700; color:var(--haupt);}
+  input[type=text]{font-family:Consolas,"Courier New",monospace; font-size:21px; padding:8px 10px; min-height:46px;
+    border:2px solid var(--grau); border-radius:6px; flex:1 1 16em; min-width:0;}
+  input.fehler{border-color:var(--rot); background:var(--rothell);}
+  .laenge{font-size:15px; color:var(--textgrau); min-width:7em;}
+  .meldung{padding:10px 14px; border-radius:6px; background:var(--hell); font-size:16.5px; margin-top:10px;}
+  .meldung.ok{background:var(--gruenhell); color:var(--gruen); font-weight:700;}
+  .meldung.nein{background:var(--rothell); color:var(--rot);}
+  table{width:100%; border-collapse:collapse; font-size:16px;}
+  th,td{padding:7px 8px; border-bottom:1px solid var(--grau); text-align:left; vertical-align:middle;}
+  th{font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--haupt);}
+  td.wort{font-family:Consolas,"Courier New",monospace; font-size:18px; white-space:nowrap;}
+  mark{background:var(--gelb); border-radius:2px; padding:0 1px;}
+  tr.richtig td.status{color:var(--gruen); font-weight:700;}
+  tr.falsch{background:var(--rothell);}
+  tr.falsch td.status{color:var(--rot); font-weight:700;}
+  .soll-ja{color:var(--gruen);} .soll-nein{color:var(--rot);}
+  .zwei{display:grid; gap:14px; grid-template-columns:1fr 1fr;}
+  @media (max-width:700px){ .zwei{grid-template-columns:1fr;} td.wort{font-size:16px;} }
+  details{margin-top:8px;}
+  summary{cursor:pointer; color:var(--haupt); font-weight:700; min-height:32px;}
+  .spick{font-size:15px;} .spick code{font-family:Consolas,"Courier New",monospace; background:#f1f4f8; padding:1px 5px; border-radius:3px;}
+  .spick td{border:none; padding:3px 8px 3px 0;}
+  .wahl{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
+  .wahl a{color:var(--haupt); font-size:17px;}
+  footer{font-size:13px; color:var(--textgrau); margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="titel">Regex-Golf</h1>
+    <p id="untertitel">Reguläre Ausdrücke testen</p>
+  </header>
+  <div id="inhalt"></div>
+  <footer>Der Tester arbeitet wie <code>RegExp.test</code> in JavaScript: Er sucht irgendwo im Wort ein Stück, das zum Ausdruck passt. Gelb markiert ist das gefundene Stück.</footer>
+</div>
+
+<script>
+/* ===== Datensätze: Aufruf regex_golf.html#schluessel ===== */
+var SAETZE = {
+  "q2-garderobe": {
+    titel: "Garderobenmarken als Ausdruck", untertitel: "Formale Sprachen und Automaten · gemeinsam im Plenum",
+    auftrag: "Gültig: G und danach eine bis drei Ziffern. Schreibt einen Ausdruck, der genau die gültigen Marken annimmt.",
+    gueltig: ["G1", "G12", "G123", "G007"],
+    fallen: ["G", "G1234", "XG12", "g12", "G12a"],
+    golf: false
+  },
+  "q2-parkett": {
+    titel: "Regex-Golf: Parkett-Tickets", untertitel: "Formale Sprachen und Automaten · zu zweit",
+    auftrag: "Gültig: ein Buchstabe A bis F, ein Bindestrich, eine Platznummer 1 bis 99 ohne führende Null. Findet den kürzesten Ausdruck, der alle gültigen Tickets annimmt und alle Fallen ablehnt.",
+    gueltig: ["A-1", "C-10", "B-7", "D-42", "E-50", "F-99"],
+    fallen: ["G-5", "A-0", "B-07", "F-100", "a-3", "C7", "XB-12", "D-4X", "-5", "E-"],
+    golf: true
+  },
+  "q2-lounge": {
+    titel: "Regex-Golf: Lounge-Tickets", untertitel: "Formale Sprachen und Automaten · Plus",
+    auftrag: "Gültig: L, Tischnummer 1 bis 9, dann mindestens eine Getränkemarke s oder w. Findet den kürzesten Ausdruck.",
+    gueltig: ["L3s", "L7wsw", "L1w", "L9ssss"],
+    fallen: ["L3", "L03s", "L3sx", "L0s", "XL3s", "l3s", "L3S", "Ls3"],
+    golf: true
+  }
+};
+
+/* ===== Mechanik ===== */
+function el(tag, attr, kinder){
+  var e = document.createElement(tag);
+  for (var k in (attr || {})) {
+    if (k === "text") e.textContent = attr[k];
+    else if (k === "html") e.innerHTML = attr[k];
+    else if (k === "cls") e.className = attr[k];
+    else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), attr[k]);
+    else e.setAttribute(k, attr[k]);
+  }
+  (kinder || []).forEach(function(c){ if (c) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+  return e;
+}
+
+function markiere(wort, m){
+  var td = el("td", { cls: "wort" });
+  if (!m) { td.textContent = wort; return td; }
+  var a = m.index, b = m.index + m[0].length;
+  td.appendChild(document.createTextNode(wort.slice(0, a)));
+  td.appendChild(el("mark", { text: m[0].length ? wort.slice(a, b) : "​" }));
+  td.appendChild(document.createTextNode(wort.slice(b)));
+  return td;
+}
+
+function pruefe(re, wort){
+  re.lastIndex = 0;
+  var m = re.exec(wort);
+  return m;
+}
+
+function speicherSchluessel(s){ return "regex-golf-" + s; }
+function lies(s){ try { return localStorage.getItem(speicherSchluessel(s)) || ""; } catch(e){ return ""; } }
+function schreib(s, v){ try { localStorage.setItem(speicherSchluessel(s), v); } catch(e){} }
+
+function zeigeWahl(){
+  var box = el("section", { cls: "karte" }, [el("h2", { text: "Datensatz wählen" })]);
+  var w = el("div", { cls: "wahl" });
+  Object.keys(SAETZE).forEach(function(k){
+    w.appendChild(el("a", { href: "#" + k, text: SAETZE[k].titel }));
+  });
+  box.appendChild(w);
+  var inh = document.getElementById("inhalt"); inh.innerHTML = ""; inh.appendChild(box);
+}
+
+function zeige(schl){
+  var s = SAETZE[schl];
+  document.getElementById("titel").textContent = s.titel;
+  document.getElementById("untertitel").textContent = s.untertitel;
+  document.title = s.titel;
+  var inh = document.getElementById("inhalt"); inh.innerHTML = "";
+
+  var feld = el("input", { type: "text", id: "ausdruck", "aria-label": "Regulärer Ausdruck", autocomplete: "off",
+    autocapitalize: "off", spellcheck: "false", placeholder: "z. B. [A-F]-[0-9]" });
+  var laenge = el("span", { cls: "laenge", "aria-live": "polite" });
+  var meldung = el("div", { cls: "meldung", "aria-live": "polite" });
+  var tabelle = el("table");
+  var eigen = el("input", { type: "text", "aria-label": "Eigenes Testwort", placeholder: "eigenes Wort", autocomplete: "off", spellcheck: "false" });
+  var eigenErg = el("div", { cls: "meldung" });
+
+  inh.appendChild(el("section", { cls: "karte" }, [
+    el("p", { cls: "auftrag", text: s.auftrag }),
+    el("div", { cls: "eingabe" }, [el("label", { "for": "ausdruck", text: "Ausdruck" }), feld, laenge]),
+    meldung,
+    el("details", {}, [el("summary", { text: "Spickzettel" }), el("table", { cls: "spick", html:
+      "<tr><td><code>abc</code></td><td>genau diese Zeichen hintereinander</td></tr>" +
+      "<tr><td><code>a|b</code></td><td>a oder b</td></tr>" +
+      "<tr><td><code>[A-F]</code></td><td>ein Zeichen aus dem Bereich A bis F</td></tr>" +
+      "<tr><td><code>x*</code></td><td>x beliebig oft, auch keinmal</td></tr>" +
+      "<tr><td><code>x+</code></td><td>x mindestens einmal</td></tr>" +
+      "<tr><td><code>x?</code></td><td>x einmal oder keinmal</td></tr>" +
+      "<tr><td><code>x{1,3}</code></td><td>x ein- bis dreimal</td></tr>" +
+      "<tr><td><code>( )</code></td><td>Klammern fassen zusammen</td></tr>" +
+      "<tr><td><code>^ $</code></td><td>Anfang und Ende des Wortes</td></tr>" }) ])
+  ]));
+
+  var kopf = el("tr", {}, [el("th", { text: "Wort" }), el("th", { text: "soll" }), el("th", { text: "Ausdruck" }), el("th", { text: "" })]);
+  inh.appendChild(el("section", { cls: "karte" }, [el("h2", { text: "Testliste" }), tabelle]));
+  inh.appendChild(el("section", { cls: "karte" }, [el("h2", { text: "Eigenes Wort testen" }), el("div", { cls: "eingabe" }, [eigen]), eigenErg]));
+
+  var woerter = s.gueltig.map(function(w){ return { w: w, soll: true }; })
+    .concat(s.fallen.map(function(w){ return { w: w, soll: false }; }));
+
+  function aktuell(){
+    var p = feld.value;
+    if (p === "") return null;
+    try { return new RegExp(p); } catch(e){ return e; }
+  }
+
+  function auswerten(){
+    schreib(schl, feld.value);
+    var re = aktuell();
+    tabelle.innerHTML = ""; tabelle.appendChild(kopf);
+    laenge.textContent = feld.value.length + " Zeichen";
+    feld.classList.toggle("fehler", re instanceof Error);
+    if (re instanceof Error) { meldung.className = "meldung nein"; meldung.textContent = "Der Ausdruck ist so nicht lesbar: " + re.message; }
+    var richtig = 0;
+    woerter.forEach(function(o){
+      var m = (re && !(re instanceof Error)) ? pruefe(re, o.w) : null;
+      var an = !!m, ok = re && !(re instanceof Error) && an === o.soll;
+      if (ok) richtig++;
+      var tr = el("tr", { cls: re && !(re instanceof Error) ? (ok ? "richtig" : "falsch") : "" }, [
+        markiere(o.w, m),
+        el("td", { cls: o.soll ? "soll-ja" : "soll-nein", text: o.soll ? "gültig" : "Falle" }),
+        el("td", { text: (re && !(re instanceof Error)) ? (an ? "angenommen" : "abgelehnt") : "–" }),
+        el("td", { cls: "status", text: (re && !(re instanceof Error)) ? (ok ? "✓" : "✗") : "" })
+      ]);
+      tabelle.appendChild(tr);
+    });
+    if (re && !(re instanceof Error)) {
+      if (richtig === woerter.length) {
+        meldung.className = "meldung ok";
+        meldung.textContent = s.golf ? "Alle " + woerter.length + " richtig. Euer Ergebnis: " + feld.value.length + " Zeichen. Geht es kürzer?" : "Alle " + woerter.length + " Wörter richtig entschieden.";
+      } else {
+        meldung.className = "meldung";
+        meldung.textContent = richtig + " von " + woerter.length + " richtig entschieden.";
+      }
+    } else if (!re) { meldung.className = "meldung"; meldung.textContent = "Schreibt einen Ausdruck in das Feld. Die Tabelle wertet bei jedem Zeichen neu aus."; }
+    eigenTest();
+  }
+
+  function eigenTest(){
+    var re = aktuell();
+    if (!eigen.value) { eigenErg.textContent = "Tippt ein Wort, um es mit eurem Ausdruck zu prüfen."; eigenErg.className = "meldung"; return; }
+    if (!re || re instanceof Error) { eigenErg.textContent = "Erst einen gültigen Ausdruck eingeben."; eigenErg.className = "meldung"; return; }
+    var m = pruefe(re, eigen.value);
+    eigenErg.innerHTML = "";
+    eigenErg.className = "meldung";
+    var t = el("table", {}, [el("tr", {}, [markiere(eigen.value, m), el("td", { text: m ? "angenommen" : "abgelehnt" })])]);
+    eigenErg.appendChild(t);
+  }
+
+  feld.addEventListener("input", auswerten);
+  eigen.addEventListener("input", eigenTest);
+  feld.value = lies(schl);
+  auswerten();
+  feld.focus();
+}
+
+function start(){
+  var h = decodeURIComponent((location.hash || "").slice(1));
+  if (SAETZE[h]) zeige(h); else { document.getElementById("titel").textContent = "Regex-Golf"; zeigeWahl(); }
+}
+window.addEventListener("hashchange", start);
+start();
+</script>
+</body>
+</html>
