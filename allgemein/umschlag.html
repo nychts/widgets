@@ -139,6 +139,30 @@ var SAETZE = {
     ]
   },
 
+  "q2-dea-grammatik": {
+    titel: "Der Scanner wird zum Bauplan", untertitel: "Informatik Q2 LK · Formale Sprachen und Automaten", badge: "Doppelstunde 8–9",
+    hinweis: "Öffnet Umschlag A. Ordnet jede Produktion dem Zustand zu, aus dem sie stammt, und prüft dann.",
+    umschlaege: [
+      { id: "A", titel: "Garderobe", modus: "zuordnen",
+        auftrag: "Garderoben-Scanner: z0 –G→ z1 –Ziffer→ z2 –Ziffer→ z3 –Ziffer→ z4. Endzustände: z2, z3, z4. Aus welchem Zustand stammt die Produktion? Drei Produktionen gehören zu keinem Zustand. (z steht für jede Ziffer.)",
+        kategorien: ["aus z0", "aus z1", "aus z2", "aus z3", "aus z4"],
+        karten: [
+          { t: "Z0 → G Z1", k: 0, warum: "Der Pfeil mit G von z0 nach z1." },
+          { t: "Z1 → z Z2", k: 1, warum: "Der Pfeil mit einer Ziffer von z1 nach z2." },
+          { t: "Z2 → z Z3", k: 2, warum: "Der Pfeil mit einer Ziffer von z2 nach z3." },
+          { t: "Z2 → ε", k: 2, warum: "z2 ist Endzustand: Eine Marke mit einer Ziffer ist fertig." },
+          { t: "Z3 → z Z4", k: 3, warum: "Der Pfeil mit einer Ziffer von z3 nach z4." },
+          { t: "Z3 → ε", k: 3, warum: "z3 ist Endzustand." },
+          { t: "Z4 → ε", k: 4, warum: "z4 ist Endzustand. Aus z4 führt kein Pfeil, also nur diese Produktion." }
+        ],
+        ablenker: [
+          { t: "Z1 → ε", warum: "z1 ist kein Endzustand. Mit dieser Produktion entstünde die Marke „G“ ohne Ziffer." },
+          { t: "Z4 → z Z5", warum: "Aus z4 führt kein Pfeil. Eine vierte Ziffer führt in den Fangzustand, und der liefert keine Produktion." },
+          { t: "Z0 → z Z1", warum: "Aus z0 gibt es nur den Pfeil mit G. Eine Marke beginnt nie mit einer Ziffer." }
+        ] }
+    ]
+  },
+
   "ma10-pq": {
     titel: "Viète schreibt das Rezept mit Buchstaben", untertitel: "Mathematik 10 · Quadratische Gleichungen", badge: "Stunde 7",
     hinweis: "Öffnet Umschlag A. Bringt die Streifen in die richtige Reihenfolge. Ein Streifen passt nicht, er kommt zu „übrig“. Die Zahlenrechnung auf dem AB hilft.",
